@@ -469,4 +469,41 @@ class PlannerActions {
       if (cur != null) store.putTasks([cur.copyWith(day: null, start: null, end: null)]);
     });
   }
+
+  // ------------------------------------------------------ missed flow
+
+  /// DecisionSheet choice (prototype `reschedTo`). The move commits first;
+  /// the sheet closes, the block is held at its old spot for 260ms, then
+  /// lifts and flies toward its destination while the rows below reflow.
+  Future<void> reschedTo(String id, int day, Slot sl) async {
+    final t = data.task(id);
+    if (t == null) return;
+    final same = day == t.day;
+    final onView = tab == AppTab.today && t.day == shownDay;
+    if (onView && !same) {
+      staging.setHold({id: TaskPos(t.day, t.start, t.end)});
+    }
+    final ok = await store.putTasks(
+        [t.copyWith(day: day, start: sl.start, end: sl.end, movedCount: t.movedCount + 1)]);
+    if (!ok) {
+      staging.setHold(const {}, remove: [id]);
+      return _failed(() => reschedTo(id, day, sl));
+    }
+    closeSheet();
+    seq.at(260 * m, () {
+      if (onView && !same) {
+        leave(id);
+        staging.setHold(const {}, remove: [id]);
+        staging.bumpNav();
+      }
+      if (tab == AppTab.plan) flash([id]);
+    });
+    note.undoable(
+        '${t.title} moved to ${day == today ? 'today, ${fmt(sl.start)}' : when(day, sl.start)}.', () {
+      final cur = data.task(id);
+      if (cur != null) {
+        store.putTasks([cur.copyWith(day: t.day, start: t.start, end: t.end, movedCount: t.movedCount)]);
+      }
+    });
+  }
 }
