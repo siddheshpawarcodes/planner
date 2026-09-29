@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Planner locked decisions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;font-family:Geist,system-ui,sans-serif;background:#F4F3EF;color:#121212;-webkit-font-smoothing:antialiased}</style>
+</helmet>
+<div style="width:1440px;height:2200px;box-sizing:border-box;padding:72px 80px;display:flex;flex-direction:column;gap:64px;background:#F4F3EF;color:#121212;font-family:Geist,sans-serif">
+<header style="display:flex;flex-direction:column;gap:14px;max-width:820px">
+<h1 style="margin:0;font:600 64px/0.98 'Bricolage Grotesque',sans-serif;letter-spacing:-0.035em">Locked decisions</h1>
+<p style="margin:0;font:400 18px/1.5 Geist,sans-serif;color:#4D4D4A;text-wrap:pretty">The open questions from the first handoff, settled. Each one shows the options side by side, the criteria, and the call. Nothing here is still competing.</p>
+</header>
+
+<section style="display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:baseline;gap:16px"><h2 style="margin:0;font:600 32px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">1. Task language: rail or blocks</h2><span style="font:600 12px 'Geist Mono',monospace;padding:4px 8px;border-radius:4px;background:#121212;color:#F4F3EF">LOCKED: B, BLOCKS</span></div>
+<div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px">
+<div style="grid-column:span 4;display:flex;flex-direction:column;gap:12px">
+<span style="font:600 16px 'Bricolage Grotesque',sans-serif">A. Rail</span>
+<div style="position:relative;height:430px;border-radius:12px;background:#0F1012;padding:22px;box-sizing:border-box">
+<div style="position:absolute;left:78px;top:22px;bottom:22px;width:2px;background:#2E3035"></div>
+<sc-for list="{{ rail }}" as="r" hint-placeholder-count="6">
+<div style="position:absolute;left:22px;right:22px;top:{{ r.y }};height:{{ r.h }};display:flex;gap:12px">
+<span style="width:44px;font:500 11px 'Geist Mono',monospace;color:#80838A">{{ r.time }}</span>
+<span style="width:6px;margin-left:5px;border-radius:3px;background:{{ r.c }};flex:none"></span>
+<span style="display:flex;flex-direction:column;gap:2px;padding-top:1px"><span style="font:600 15px 'Bricolage Grotesque',sans-serif;color:{{ r.tc }};text-decoration:{{ r.deco }}">{{ r.t }}</span><span style="font:400 11px 'Geist Mono',monospace;color:#80838A">{{ r.m }}</span></span>
+</div>
+</sc-for>
+</div>
+<span style="font:400 13px/1.5 Geist,sans-serif;color:#4D4D4A">Elegant and airy, very transit-map. But duration lives in a 6px bar, so the tap target is the text, drag has nothing to hold, and the current task is only as loud as its line.</span>
+</div>
+<div style="grid-column:5 / span 4;display:flex;flex-direction:column;gap:12px">
+<span style="font:600 16px 'Bricolage Grotesque',sans-serif">B. Square-cornered blocks</span>
+<div style="position:relative;height:430px;border-radius:12px;background:#0F1012;padding:22px;box-sizing:border-box">
+<sc-for list="{{ blocks }}" as="b" hint-placeholder-count="6">
+<div style="position:absolute;left:22px;right:22px;top:{{ b.y }};height:{{ b.h }};display:flex;gap:8px">
+<span style="width:44px;flex:none;font:500 11px 'Geist Mono',monospace;color:#80838A;padding-top:12px">{{ b.time }}</span>
+<div style="flex:1;border-radius:4px;background:{{ b.bg }};box-shadow:{{ b.ring }};display:flex;align-items:{{ b.al }};padding:{{ b.pad }};box-sizing:border-box;gap:8px"><span style="width:{{ b.sqW }};height:8px;border-radius:2px;background:{{ b.sq }};flex:none;margin-top:{{ b.sqM }}"></span><span style="display:flex;flex-direction:column;gap:3px"><span style="font:600 15px 'Bricolage Grotesque',sans-serif;color:{{ b.tc }};text-decoration:{{ b.deco }}">{{ b.t }}</span><span style="font:400 11.5px 'Geist Mono',monospace;color:{{ b.mc }}">{{ b.m }}</span></span></div>
+</div>
+</sc-for>
+</div>
+<span style="font:400 13px/1.5 Geist,sans-serif;color:#4D4D4A">Duration is area you can see and touch. Current and next are unmistakable. Done tasks recede. The same shape zooms down into a week line.</span>
+</div>
+<div style="grid-column:9 / span 4;display:flex;flex-direction:column">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;gap:10px;padding:0 0 8px;font:500 11px 'Geist Mono',monospace;color:#4D4D4A"><span>CRITERION</span><span style="text-align:center">A</span><span style="text-align:center">B</span></div>
+<sc-for list="{{ crit }}" as="c" hint-placeholder-count="7">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;gap:10px;align-items:start;padding:11px 0;border-top:1px solid #D3D1CA">
+<span style="display:flex;flex-direction:column;gap:2px"><span style="font:500 14px Geist,sans-serif">{{ c.k }}</span><span style="font:400 12.5px/1.4 Geist,sans-serif;color:#4D4D4A">{{ c.d }}</span></span>
+<span style="text-align:center;font:500 13px 'Geist Mono',monospace;color:{{ c.ac }}">{{ c.a }}</span>
+<span style="text-align:center;font:500 13px 'Geist Mono',monospace;color:{{ c.bc }}">{{ c.b }}</span>
+</div>
+</sc-for>
+<p style="margin:14px 0 0;font:400 13.5px/1.5 Geist,sans-serif;color:#121212;text-wrap:pretty">The rail survives, as the collapsed form of a block: in the Week board, unselected days draw every task as a 4px line. One language, two zoom levels.</p>
+</div>
+</div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:baseline;gap:16px"><h2 style="margin:0;font:600 32px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">2. Colour: rainbow or transit map</h2><span style="font:600 12px 'Geist Mono',monospace;padding:4px 8px;border-radius:4px;background:#121212;color:#F4F3EF">LOCKED: RESTRAINT</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px">
+<sc-for list="{{ colour }}" as="o" hint-placeholder-count="3">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="height:250px;border-radius:12px;background:#0F1012;padding:20px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px">
+<sc-for list="{{ o.rows }}" as="r" hint-placeholder-count="6"><div style="height:{{ r.h }};border-radius:4px;background:{{ r.bg }};box-shadow:{{ r.ring }};display:flex;align-items:center;gap:8px;padding:0 12px;font:600 13px 'Bricolage Grotesque',sans-serif;color:{{ r.c }};text-decoration:{{ r.deco }}"><span style="width:{{ r.sqW }};height:7px;border-radius:2px;background:{{ r.sq }}"></span>{{ r.t }}</div></sc-for>
+</div>
+<span style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:600 16px 'Bricolage Grotesque',sans-serif">{{ o.t }}</span><span style="font:500 12px 'Geist Mono',monospace;color:{{ o.vc }}">{{ o.v }}</span></span>
+<span style="font:400 13px/1.5 Geist,sans-serif;color:#4D4D4A">{{ o.d }}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;row-gap:24px">
+<div style="grid-column:span 12;display:flex;align-items:baseline;gap:16px"><h2 style="margin:0;font:600 32px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">3. Everything else that was open</h2></div>
+<sc-for list="{{ others }}" as="o" hint-placeholder-count="8">
+<div style="grid-column:span 6;display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;padding:18px 0;border-top:1px solid #D3D1CA">
+<span style="font:500 13px 'Geist Mono',monospace;color:#4D4D4A">{{ o.n }}</span>
+<span style="display:flex;flex-direction:column;gap:6px"><span style="font:600 18px/1.25 'Bricolage Grotesque',sans-serif">{{ o.t }}</span><span style="font:400 13.5px/1.5 Geist,sans-serif;color:#4D4D4A;text-wrap:pretty">{{ o.d }}</span></span>
+</div>
+</sc-for>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2200}}'>
+const C = { study:'#2450E6', build:'#00875A', body:'#D9331A', people:'#C92A76', self:'#F5B800', work:'#5A6B7D', rest:'#8C6A40' };
+const rgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+const mixHex = (a, b, t) => { const A = rgb(a), B = rgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+const tD = c => mixHex('#0F1012', C[c], 0.2);
+class Component extends DCLogic {
+  renderVals() {
+    const items = [['19:00', 'Dinner', 'rest', 60, 'fixed'], ['20:00', 'Study polity', 'study', 100, 'done'], ['21:40', 'Exercise', 'body', 45, 'now'], ['22:30', 'Learn Flutter', 'build', 60, 'next'], ['23:30', 'Read', 'self', 30, 'up']];
+    let y = 22; const rail = [], blocks = [];
+    items.forEach(([time, t, cat, m, st]) => { const h = Math.max(44, m * 1.1);
+      rail.push({ time, t, y:y + 'px', h:h + 'px', c:st === 'done' ? '#2E3035' : st === 'fixed' ? tD(cat) : C[cat], tc:st === 'done' ? '#80838A' : '#F2F2EF', deco:st === 'done' ? 'line-through' : 'none', m:`${m}m` });
+      const full = st === 'now' || st === 'next';
+      blocks.push({ time, t, y:y + 'px', h:h + 'px', bg:st === 'done' ? '#0F1012' : st === 'fixed' ? mixHex('#0F1012', C[cat], 0.26) : full ? C[cat] : tD(cat), ring:st === 'done' ? 'inset 0 0 0 1px #2E3035' : 'none', al:h >= 60 ? 'flex-start' : 'center', pad:h >= 60 ? '11px 14px 0' : '0 14px', sqW:full || st === 'fixed' ? '0px' : '8px', sqM:h >= 60 ? '5px' : '0px', sq:st === 'done' ? mixHex('#0F1012', C[cat], 0.45) : C[cat], tc:full ? '#fff' : st === 'done' ? '#80838A' : '#F2F2EF', deco:st === 'done' ? 'line-through' : 'none', m:st === 'now' ? 'NOW  21:40 → 22:25' : st === 'next' ? 'NEXT  22:30 → 23:30' : `${m}m`, mc:full ? 'rgba(255,255,255,.8)' : '#80838A' });
+      y += h + 6; });
+    const X = (a, b) => ({ a, b, ac:a === '●' ? '#121212' : '#686863', bc:b === '●' ? '#121212' : '#686863' });
+    const crit = [
+      ['Duration', 'Can you see how long it is at a glance?', '○', '●'], ['Mobile', 'Readable and tappable at 44px on a 360px phone', '○', '●'], ['Drag', 'A body to grab, lift and drop', '○', '●'], ['Completion', 'Room for the sweep, check and quiet done state', '◐', '●'], ['Hierarchy', 'Now and next louder than the rest', '◐', '●'], ['Flutter', 'Maps to one AnimatedPositioned plus a painter', '●', '●'], ['Scale down', 'Survives the week view at 26px', '●', '● as a line']
+    ].map(([k, d, a, b]) => ({ k, d, ...X(a, b) }));
+    const row = (t, cat, o) => ({ t, h:'30px', bg:tD(cat), ring:'none', c:'#F2F2EF', deco:'none', sqW:'7px', sq:C[cat], ...(o || {}) });
+    const colour = [
+      { t:'Everything saturated', v:'REJECTED', vc:'#686863', d:'A rainbow dashboard. Nothing is louder than anything else, and the eye has nowhere to land.', rows:[row('Office', 'work', { bg:C.work, c:'#fff', sqW:'0px' }), row('Study polity', 'study', { bg:C.study, c:'#fff', sqW:'0px' }), row('Exercise', 'body', { bg:C.body, c:'#fff', sqW:'0px' }), row('Learn Flutter', 'build', { bg:C.build, c:'#fff', sqW:'0px' }), row('Call family', 'people', { bg:C.people, c:'#fff', sqW:'0px' }), row('Read', 'self', { bg:C.self, c:'#1A1404', sqW:'0px' })] },
+      { t:'Monochrome with one accent', v:'REJECTED', vc:'#686863', d:'The first iteration: calm but anonymous. Categories are invisible, so the week can’t show where time went.', rows:[row('Office', 'work', { bg:'#1A1B1E', sqW:'0px' }), row('Study polity', 'study', { bg:'#1A1B1E', ring:'inset 0 0 0 1.5px #FF7A30', sqW:'0px' }), row('Exercise', 'body', { bg:'#1A1B1E', sqW:'0px' }), row('Learn Flutter', 'build', { bg:'#1A1B1E', sqW:'0px' }), row('Call family', 'people', { bg:'#1A1B1E', sqW:'0px' }), row('Read', 'self', { bg:'#1A1B1E', sqW:'0px' })] },
+      { t:'Transit map', v:'LOCKED', vc:'#121212', d:'Full colour only for now and next. Tints for the rest, bands for commitments. Every category stays identifiable, and attention is never split.', rows:[row('Office', 'work', { bg:mixHex('#0F1012', C.work, 0.26), sqW:'0px' }), row('Study polity', 'study', { bg:'#0F1012', ring:'inset 0 0 0 1px #2E3035', c:'#80838A', deco:'line-through', sq:mixHex('#0F1012', C.study, 0.45) }), row('Exercise  NOW', 'body', { bg:C.body, c:'#fff', sqW:'0px' }), row('Learn Flutter  NEXT', 'build', { bg:C.build, c:'#fff', sqW:'0px' }), row('Call family', 'people'), row('Read', 'self')] }
+    ];
+    const others = [
+      ['Navigation', 'Today, Plan, the orb, Progress, and a quiet settings icon. The orb stays dead centre in a five-slot grid (1fr 1fr 92px 1fr 1fr). Settings is icon-only in t3, so the three labelled destinations stay primary.'],
+      ['Plan is one instrument', 'Plan’s Today, Tomorrow and Week tabs are the same board at three zoom levels. The selected day expands, and the others stay visible as slivers of colour, so context is never lost and switching tabs is a zoom, not a page change. Upcoming is the one list view: deadlines, repeats, unscheduled.'],
+      ['Today header', 'The big clock is gone, as approved. The date is a Bricolage title, and the now-pill on the timeline carries the time. Room goes to the capacity meter and the timeline.'],
+      ['Now colour', 'The now-line is the ink colour (tx), not an accent: “you are here” on a transit map. Colour stays reserved for categories.'],
+      ['Done in Today vs Week', 'Today dims finished work so the eye moves to what’s left. The Week saturates finished work, so the week visibly fills in. Different jobs, the same rule: colour follows attention.'],
+      ['Notes', 'The transient note moved from under the now-line to one status strip above the nav, the same on every screen, with Undo for anything destructive or moved. The old inline position couldn’t serve Plan or Settings.'],
+      ['Protected time', 'Getting ready (wake to work) and Wind-down (the 30 min before sleep) are inferred from onboarding and drawn as hatch. Capacity subtracts them. That is why a new user’s evening has 2h 55m realistic time, not 4h.'],
+      ['Over-capacity copy', 'Until there are two weeks of history, Planner says “more than fits before your wind-down”. After that it earns the right to say “more than you usually finish in an evening”. It never guesses at habits it hasn’t seen.']
+    ].map(([t, d], i) => ({ n:String(i + 3).padStart(2, '0'), t, d }));
+    return { rail, blocks, crit, colour, others };
+  }
+}
+</script>
+</body>
+</html>

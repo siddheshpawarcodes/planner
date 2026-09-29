@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Planner choreography</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;font-family:Geist,system-ui,sans-serif;background:#F4F3EF;color:#121212;-webkit-font-smoothing:antialiased}</style>
+</helmet>
+<div style="width:1440px;height:4200px;box-sizing:border-box;padding:72px 80px;display:flex;flex-direction:column;gap:60px;background:#F4F3EF;color:#121212;font-family:Geist,sans-serif">
+<header style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px">
+<div style="grid-column:span 7;display:flex;flex-direction:column;gap:14px"><h1 style="margin:0;font:600 64px/0.98 'Bricolage Grotesque',sans-serif;letter-spacing:-0.035em">Choreography</h1><p style="margin:0;font:400 18px/1.5 Geist,sans-serif;color:#4D4D4A;text-wrap:pretty">Exact timings for every sequence that crosses more than one component. They come straight from the prototype’s timers. Bars show when each track animates. The black tick is when state commits, which always happens first.</p></div>
+<div style="grid-column:9 / span 4;display:flex;flex-direction:column;gap:8px;padding-top:14px">
+<sc-for list="{{ legend }}" as="l" hint-placeholder-count="4"><div style="display:flex;align-items:center;gap:10px;font:400 13px Geist,sans-serif;color:#4D4D4A"><span style="width:28px;height:10px;border-radius:2px;background:{{ l.bg }};box-shadow:{{ l.sh }}"></span>{{ l.t }}</div></sc-for>
+</div>
+</header>
+
+<sc-for list="{{ seqs }}" as="q" hint-placeholder-count="7">
+<section style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:20px"><h2 style="margin:0;font:600 28px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">{{ q.title }}</h2><span style="font:500 12px 'Geist Mono',monospace;color:#4D4D4A">{{ q.meta }}</span></div>
+<p style="margin:0;font:400 14px/1.5 Geist,sans-serif;color:#4D4D4A;max-width:900px;text-wrap:pretty">{{ q.d }}</p>
+<div style="display:grid;grid-template-columns:200px minmax(0,1fr);row-gap:4px;column-gap:16px;padding:18px 22px;border-radius:12px;background:#E8E7E2">
+<span></span>
+<div style="position:relative;height:18px"><sc-for list="{{ q.ticks }}" as="tk" hint-placeholder-count="8"><span style="position:absolute;left:{{ tk.x }};top:0;transform:translateX(-50%);font:500 10px 'Geist Mono',monospace;color:#686863">{{ tk.t }}</span></sc-for></div>
+<sc-for list="{{ q.tracks }}" as="tr" hint-placeholder-count="8">
+<span style="font:500 12.5px Geist,sans-serif;align-self:center">{{ tr.n }}</span>
+<div style="position:relative;height:24px;border-top:1px solid #D3D1CA">
+<sc-for list="{{ tr.segs }}" as="sg" hint-placeholder-count="2"><div style="position:absolute;top:5px;height:14px;left:{{ sg.x }};width:{{ sg.w }};border-radius:2px;background:{{ sg.bg }};box-shadow:{{ sg.sh }};display:flex;align-items:center;padding:0 5px;box-sizing:border-box;overflow:hidden;white-space:nowrap;font:500 9.5px 'Geist Mono',monospace;color:{{ sg.c }}">{{ sg.l }}</div></sc-for>
+<sc-for list="{{ tr.marks }}" as="mk" hint-placeholder-count="0"><div style="position:absolute;top:1px;height:22px;width:2px;left:{{ mk.x }};background:#121212"></div></sc-for>
+</div>
+</sc-for>
+</div>
+</section>
+</sc-for>
+
+<section style="display:flex;flex-direction:column;gap:18px">
+<h2 style="margin:0;font:600 32px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">The final quality test, walked through</h2>
+<p style="margin:0;font:400 15px/1.5 Geist,sans-serif;color:#4D4D4A;max-width:900px;text-wrap:pretty">The scenario from the brief, beat by beat, with what the user sees and what the app commits. Every beat is a step in the prototype’s control panel, and each one also happens naturally if you just use the app.</p>
+<div style="display:flex;flex-direction:column">
+<div style="display:grid;grid-template-columns:44px 240px minmax(0,1fr) minmax(0,1fr);gap:18px;padding:0 0 8px;font:500 11px 'Geist Mono',monospace;color:#4D4D4A"><span></span><span>BEAT</span><span>WHAT THEY SEE</span><span>WHAT CHANGES</span></div>
+<sc-for list="{{ walk }}" as="w" hint-placeholder-count="10">
+<div style="display:grid;grid-template-columns:44px 240px minmax(0,1fr) minmax(0,1fr);gap:18px;padding:14px 0;border-top:1px solid #D3D1CA;align-items:start">
+<span style="font:500 13px 'Geist Mono',monospace;color:#4D4D4A">{{ w.n }}</span>
+<span style="font:600 16px/1.3 'Bricolage Grotesque',sans-serif">{{ w.t }}</span>
+<span style="font:400 13.5px/1.5 Geist,sans-serif">{{ w.s }}</span>
+<span style="font:400 13px/1.5 Geist,sans-serif;color:#4D4D4A">{{ w.c }}</span>
+</div>
+</sc-for>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4200}}'>
+const COL = { orb:'#121212', ui:'#80838A', data:'#2450E6', ambient:'#D3D1CA', body:'#D9331A', build:'#00875A', study:'#2450E6' };
+const W = 1010;
+function seq(title, meta, d, total, step, tracks) {
+  const px = W / total;
+  const ticks = []; for (let t = 0; t <= total + 1; t += step) ticks.push({ x:(t * px) + 'px', t:t >= 1000 ? (t / 1000) + 's' : t + 'ms' });
+  return { title, meta, d, ticks, tracks:tracks.map(([n, segs, marks]) => ({ n, segs:segs.map(([a, b, l, kind]) => { const k = kind || 'ui'; const dark = k === 'orb' || k === 'data' || k === 'body' || k === 'build' || k === 'study';
+    return { x:(a * px) + 'px', w:Math.max(3, (b - a) * px) + 'px', l:(b - a) * px > 40 ? l : '', bg:k === 'ambient' ? 'repeating-linear-gradient(90deg,#B9B6AD 0 2px,transparent 2px 5px)' : COL[k], sh:'none', c:dark ? '#fff' : '#121212' }; }), marks:(marks || []).map(m => ({ x:(m * px - 1) + 'px' })) })) };
+}
+class Component extends DCLogic {
+  renderVals() {
+    const n = 19, L0 = 900, L1 = L0 + 150 + n * 215 + 550, P1 = L1 + 1100, S0 = P1 + 1200 + 3 * 170, I0 = S0 + 1200, PL = I0 + 650, SC = PL + 850;
+    const task = i => [SC + i * 620, SC + i * 620 + 360, SC + i * 620 + 360 + 640];
+    const [a1, b1, c1] = task(0), [a2, b2, c2] = task(1), [a3, b3, c3] = task(2), HL = SC + 3 * 620 + 500;
+    const voice = seq('Voice to scheduling: “Tomorrow I want to study polity…”', `${(HL / 1000).toFixed(1)}s total, reduced motion ×0.35`, 'The hero moment. Planner hears the request, shows what it understood, then visibly reorganises tomorrow: it finds the window, scans it, introduces each task, places it at its exact minute, and updates capacity as each one lands. The tasks are committed at SUCCESS (the black tick). Everything after that is explanation.', 14500, 1000, [
+      ['Orb state', [[0, L0, 'WAKE', 'orb'], [L0, L1, 'LISTENING', 'orb'], [L1, P1, 'UNDERSTANDING', 'orb'], [P1, S0, 'RESULT', 'orb'], [S0, I0, 'SUCCESS', 'orb']], [S0]],
+      ['Orb position', [[0, 760, 'rise 760 spring'], [I0, I0 + 760, 'dock']]],
+      ['Veil', [[0, 420, 'fade 420'], [I0, I0 + 420, 'out']]],
+      ['Transcript', [[L0 + 150, L1 - 550, '19 words, one every 215ms']]],
+      ['Understood words', [[L1, L1 + 22 * 19 + 360, 'key words to tx, stagger 22']]],
+      ['Parsed rows', [[P1, P1 + 420, 'words lift'], [P1 + 120, P1 + 120 + 3 * 170 + 520, '3 rows, stagger 170']]],
+      ['Day switch', [[I0, I0 + 530, 'Today → Tomorrow (170 out, 360 in)']]],
+      ['Window', [[I0, HL, 'highlight: tx hairline on s1', 'ui']]],
+      ['Scan line', [[PL, SC, 'sweep 800', 'data']]],
+      ['Study polity', [[a1, b1, 'staged', 'study'], [b1, c1, 'placed 640 spring', 'study']]],
+      ['Exercise', [[a2, b2, 'staged', 'body'], [b2, c2, 'placed', 'body']]],
+      ['Learn Flutter', [[a3, b3, 'staged', 'build'], [b3, c3, 'placed', 'build']]],
+      ['Capacity, odometer', [[b1, b1 + 620, '+2h'], [b2, b2 + 620, '+45m'], [b3, b3 + 620, '+1h']]],
+      ['Over-capacity row', [[HL, HL + 400, 'calm row appears', 'ui']]],
+      ['Now pulse (ambient)', [[S0 + 1600, 14500, 'resumes', 'ambient']]]
+    ]);
+    const complete = seq('Completing a task (tap the check or swipe right)', '1.0s', 'State commits on the tap. The sweep, the tick and the odometer explain it. If the task finished early, the block shrinks to its real end and the freed minutes appear as open time below it.', 1400, 200, [
+      ['State', [], [0]], ['Haptic', [[0, 30, 'light 12ms', 'orb']]], ['Sweep overlay', [[0, 380, 'scaleX 380 snap', 'study'], [380, 900, 'fade 520']]],
+      ['Check circle', [[0, 380, 'scale 1.18'], [380, 900, 'spring back', 'data']]], ['Tick stroke', [[580, 880, 'draw 300', 'orb']]],
+      ['Block height (early)', [[0, 640, 'shrink to real end, spring', 'data']]], ['Neighbours', [[0, 640, 'reflow up, spring', 'data']]],
+      ['Odometer, segment', [[380, 1080, 'roll +1', 'data']]], ['Note', [[380, 900, 'rise 12px spring']]], ['Next task', [[380, 780, 'tint to full colour, 400']]]
+    ]);
+    const missed = seq('A missed task, rescheduled', '1.3s after the choice', 'The prompt appears quietly under capacity. “Decide” opens the sheet. Choosing an option commits at once. The block is held in place while the sheet leaves, then lifts and flies toward the destination, the gap it leaves reflows, and the Plan tab or Tomorrow bumps to show where it went.', 1400, 200, [
+      ['State', [], [0]], ['Sheet', [[0, 460, 'close 460 settle']]], ['Hold', [[0, 260, 'block stays in place', 'ambient']]],
+      ['Block', [[260, 320, 'lift 1.02'], [320, 880, 'fly to destination, shrink .5', 'body']]], ['Gap', [[320, 960, 'rows reflow, spring', 'data']]],
+      ['Plan nav or Tomorrow', [[260, 960, 'bump 1.12 spring', 'orb']]], ['Note with Undo', [[0, 520, 'rise']]]
+    ]);
+    const drag = seq('Dragging a block across the week', 'live while dragging, then 0.9s', 'On the Week board a block lifts after a 250ms long press (6px movement with a mouse). Neighbours reflow live on every move, so you watch the day make room. On drop the block springs into its slot and a scan line sweeps both affected days while their load bars recalculate.', 1400, 200, [
+      ['Pickup', [[0, 160, 'scale 1.03 + ring, snap', 'orb']]], ['Target column', [[160, 700, 'highlight s1 while hovering']]], ['Ghost slot', [[160, 700, 'dashed, snaps to 15 min', 'data']]],
+      ['Neighbours', [[200, 760, 'reflow, spring 560', 'data']]], ['Drop', [[700, 1260, 'spring to slot', 'orb']], [700]], ['Scan (both days)', [[700, 1400, 'sweep 700', 'data']]], ['Load bars', [[700, 1320, '620 spring']]]
+    ]);
+    const onboarding = seq('Onboarding: the rhythm assembles', '2.5s', 'After the last answer, the first real day builds itself top to bottom. Each piece of the routine drops into place in time order, so the user sees Planner has understood their day before they see a single feature.', 2800, 400, [
+      ['Routine', [], [0]], ['Wake', [[540, 1180, 'rise 14px spring', 'orb']]], ['Getting ready', [[780, 1420, '', 'ui']]], ['Office', [[1020, 1660, '', 'data']]], ['Dinner', [[1260, 1900, '', 'ui']]], ['Your time', [[1500, 2140, 'dashed window', 'ui']]], ['Wind-down', [[1740, 2380, '', 'ui']]], ['Sleep', [[1980, 2620, '', 'ui']]], ['“Your rhythm is ready.”', [[2220, 2800, 'title, capacity sentence, button', 'orb']]]
+    ]);
+    const views = seq('Strip ↔ Dial, tabs and days', 'navigation tier', 'The Dial is the same day bent into a 24-hour instrument. The strip recedes, the dial turns in from −8°, and each arc draws in time order. Tabs slide 24% with a blur, and days slide 22px.', 1200, 200, [
+      ['Strip out', [[0, 300, 'fade, scale .97']]], ['Dial in', [[0, 520, 'rotate −8° → 0, scale .9 → 1, spring', 'orb']]], ['Arcs', [[40, 740, 'draw 700, stagger 45', 'data']]],
+      ['Tab out', [[0, 320, 'x ∓24%, blur 8, fade']]], ['Tab in', [[0, 520, 'settle', 'orb']]], ['Day out', [[0, 170, '22px, blur 5']]], ['Day in', [[200, 560, 'settle 360', 'orb']]]
+    ]);
+    const review = seq('Weekly review: staged storytelling', '6 stages, tap to advance', 'One idea per screen, in the order the week is best understood: its shape, what was planned against what got done, focus, what moved, when you work best, then what’s next. Each stage builds its own visual as it enters. Nothing is dumped at once.', 6000, 1000, [
+      ['Ribbon', [[200, 1800, 'reveal left to right 1600', 'data']]], ['Planned vs done', [[1000, 2400, '24 squares fill, 45ms each', 'orb']]], ['Focus bars', [[2000, 3100, 'grow, stagger 160', 'data']]], ['What moved', [[3000, 3800, 'rows slide in, stagger 180']]], ['Best hours', [[4000, 4900, 'heatmap diagonal 9ms', 'data']]], ['Coming up', [[5000, 5600, 'deadlines, then Plan next week', 'orb']]], ['Progress bar', [[0, 6000, 'one segment per stage, 900 each']]]
+    ]);
+    const walk = [
+      ['Installs, sees onboarding', 'Five questions, one per screen, with a live 24-hour bar that fills as they answer.', 'Nothing yet. The answers are held in memory until the last step.'],
+      ['Wake 7, office 8 → 19, dinner 19 → 20, sleep 00:00', 'Big ruler time picker. Dinner is preselected on the commitments screen.', 'Routine saved. Getting ready (07-08) and Wind-down (23:30-24) are inferred as protected.'],
+      ['“Your rhythm is ready.”', 'Tuesday assembles itself piece by piece. The sentence reads: 3h 10m of realistic time every weekday evening.', 'Week built from the routine, with no tasks yet.'],
+      ['Reaches Today at 19:40', 'Now: Dinner, then an empty evening window. “No plans yet. Tell Planner what you want to accomplish.” HEY PLANNER shows under the orb.', 'Wake phrase armed, because Today is in the foreground.'],
+      ['“Hey Planner”, then the three-task request', 'Orb rises and listens. Key words turn bright. Three parsed rows appear: 2h 20:00, 45m 22:15, 1h 23:00.', 'At SUCCESS three tasks are written for Wednesday, plus the auto break after 2h.'],
+      ['Planner schedules it visibly', 'Switches to Tomorrow, highlights and scans the window, places each task. Capacity fills to 3h 45m against 2h 55m.', 'Calm row: “This is 50m more than fits before your wind-down.” Move Flutter or Keep anyway.'],
+      ['Adjusts it', 'Taps Move Flutter. The block flies out and capacity settles under the marker. The note says Thursday 20:00.', 'Learn Flutter moved to Thu 20:00. Undo available for 5s.'],
+      ['Completes one task', 'Wednesday 21:40, mid-Polity. A swipe right sweeps across it. The block shrinks to 21:40, and the note says 20 min back. Exercise is next, already in full colour.', 'Done at 21:40, end moved from 22:00. The odometer rolls to 1. Progress will count 1h 40m of Study.'],
+      ['Misses another', 'At 23:05 Exercise is dashed, not red. “Exercise didn’t happen. What should we do with it?” Decide.', 'Options come from the scheduler: later today (no room), tomorrow 21:00, weekend 09:00, choose a day, skip, delete.'],
+      ['Planner reschedules gracefully', 'Picks the weekend. The block lifts, flies off, the gap closes, and Plan bumps.', 'Exercise moved to Sat 09:00, rescheduled count +1.'],
+      ['End of the week', 'Sunday 21:00. Progress shows the stacked ribbon of the week, and the review tells the story in six stages.', 'Nothing new is written. The review reads history: 19 of 24, 16h 10m focused, 4 moved, 2 skipped, 1 carried forward.']
+    ].map(([t, s, c], i) => ({ n:String(i + 1), t, s, c }));
+    return { seqs:[voice, complete, missed, drag, onboarding, views, review], walk,
+      legend:[{ t:'State or orb (leads its tier)', bg:'#121212', sh:'none' }, { t:'Data and category motion', bg:'#2450E6', sh:'none' }, { t:'Interface feedback', bg:'#80838A', sh:'none' }, { t:'Ambient, paused while others run', bg:'repeating-linear-gradient(90deg,#B9B6AD 0 2px,transparent 2px 5px)', sh:'none' }] };
+  }
+}
+</script>
+</body>
+</html>

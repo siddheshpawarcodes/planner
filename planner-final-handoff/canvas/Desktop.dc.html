@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Planner desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;font-family:Geist,system-ui,sans-serif;background:#0F1012;-webkit-font-smoothing:antialiased}
+@keyframes dPulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(3.4);opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}</style>
+</helmet>
+<div style="position:relative;width:1440px;height:900px;background:#0F1012;color:#F2F2EF;font-family:Geist,sans-serif;overflow:hidden">
+
+<aside style="position:absolute;left:0;top:0;bottom:0;width:232px;box-sizing:border-box;border-right:1px solid #2E3035;padding:28px 18px 22px;display:flex;flex-direction:column;gap:26px">
+<span style="font:600 22px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.01em;padding:0 8px">Planner</span>
+<nav aria-label="Primary" style="display:flex;flex-direction:column;gap:2px">
+<sc-for list="{{ nav }}" as="n" hint-placeholder-count="3"><button style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 10px;border:0;border-radius:8px;background:{{ n.bg }};color:{{ n.c }};font:500 14px Geist,sans-serif;cursor:pointer;text-align:left">{{ n.t }}<span style="font:500 11px 'Geist Mono',monospace;color:#80838A">{{ n.k }}</span></button></sc-for>
+</nav>
+<div style="display:flex;flex-direction:column;gap:10px;padding:0 8px">
+<span style="font:500 12.5px Geist,sans-serif;color:#A9ABB0">This week</span>
+<span style="font:400 13px/1.4 Geist,sans-serif"><span style="font-weight:500">{{ wkPlanned }}</span> planned of <span style="font-weight:500">{{ wkReal }}</span> realistic</span>
+<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;align-items:end;height:44px">
+<sc-for list="{{ wkBars }}" as="b" hint-placeholder-count="7"><div style="display:flex;flex-direction:column;gap:4px;align-items:center"><div style="width:100%;height:{{ b.h }};border-radius:2px;background:{{ b.bg }}"></div><span style="font:500 9.5px 'Geist Mono',monospace;color:{{ b.c }}">{{ b.l }}</span></div></sc-for>
+</div>
+</div>
+<div style="flex:1"></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+<canvas ref="{{ orbRef }}" width="280" height="280" style="width:140px;height:140px;margin:-24px 0 -30px"></canvas>
+<button aria-label="Talk to Planner" style="height:36px;padding:0 14px;border-radius:999px;border:1px solid #2E3035;background:transparent;color:#F2F2EF;font:500 13px Geist,sans-serif;display:flex;align-items:center;gap:8px;cursor:pointer">Talk to Planner<span style="font:500 11px 'Geist Mono',monospace;padding:2px 6px;border-radius:4px;background:#25272B;color:#A9ABB0">V</span></button>
+<span style="font:400 11.5px/1.4 Geist,sans-serif;color:#80838A;text-align:center;max-width:180px">Or say “Hey Planner” while Today is on screen.</span>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 8px 0;border-top:1px solid #2E3035">
+<span style="display:flex;align-items:center;gap:8px;font:400 12px Geist,sans-serif;color:#80838A"><svg width="16" height="16" viewBox="0 0 24 24" style="fill:none;stroke:#80838A;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"><path d="{{ cloud }}"></path></svg>Backed up 19:02</span>
+<button aria-label="Settings" style="width:36px;height:36px;border:0;background:transparent;color:#80838A;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round"><path d="{{ sliders }}"></path><circle cx="15" cy="7" r="2"></circle><circle cx="9" cy="17" r="2"></circle></svg></button>
+</div>
+</aside>
+
+<main style="position:absolute;left:232px;top:0;width:808px;bottom:0">
+<div style="position:absolute;left:28px;right:28px;top:28px;display:flex;justify-content:space-between;align-items:center">
+<div style="display:flex;align-items:baseline;gap:12px"><h1 style="margin:0;font:600 30px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">This week</h1><span style="font:400 13px 'Geist Mono',monospace;color:#80838A">28 Sep → 4 Oct</span></div>
+<button style="height:40px;padding:0 16px;border-radius:999px;border:0;background:#F2F2EF;color:#0F1012;font:500 13.5px Geist,sans-serif;display:flex;align-items:center;gap:10px;cursor:pointer">New task<span style="font:500 11px 'Geist Mono',monospace;padding:2px 6px;border-radius:4px;background:#DCDAD3;color:#4D4D4A">N</span></button>
+</div>
+<div style="position:absolute;left:28px;top:86px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:420px;height:38px;padding:3px;box-sizing:border-box;border-radius:999px;background:#1A1B1E">
+<sc-for list="{{ segs }}" as="s" hint-placeholder-count="4"><button style="border:0;border-radius:999px;background:{{ s.bg }};color:{{ s.c }};font:500 13px Geist,sans-serif;cursor:pointer">{{ s.t }}</button></sc-for>
+</div>
+<div style="position:absolute;left:0;top:0;right:0;bottom:0">
+<sc-for list="{{ B.axis }}" as="ax" hint-placeholder-count="7"><div style="position:absolute;left:28px;top:{{ ax.y }};font:500 10.5px 'Geist Mono',monospace;color:#80838A">{{ ax.t }}</div></sc-for>
+<sc-for list="{{ B.cols }}" as="c" hint-placeholder-count="7">
+<div style="position:absolute;top:150px;bottom:30px;left:{{ c.x }};width:{{ c.w }};border-radius:8px;background:{{ c.bg }};opacity:{{ c.o }}">
+<div style="position:absolute;left:8px;right:8px;top:10px;display:flex;justify-content:space-between;align-items:baseline"><span style="font:{{ c.hw }} 14px 'Bricolage Grotesque',sans-serif;color:{{ c.hc }}">{{ c.label }}</span></div>
+<span style="position:absolute;left:8px;top:30px;font:500 10.5px 'Geist Mono',monospace;color:{{ c.capC }}">{{ c.cap }}</span>
+<div style="position:absolute;left:6px;top:48px;width:{{ c.bw }};height:3px;border-radius:1px;background:#2E3035"><div style="position:absolute;left:0;top:0;bottom:0;width:{{ c.fill }};background:#F2F2EF"></div><div style="position:absolute;top:0;bottom:0;left:{{ c.ovL }};width:{{ c.ovW }};background:repeating-linear-gradient(135deg,#F2F2EF 0 1.5px,transparent 1.5px 3.5px)"></div></div>
+</div>
+</sc-for>
+<sc-for list="{{ B.bands }}" as="bd" hint-placeholder-count="20"><div style="position:absolute;left:{{ bd.x }};width:{{ bd.w }};top:{{ bd.y }};height:{{ bd.h }};border-radius:2px;background:{{ bd.bg }};opacity:{{ bd.o }};overflow:hidden"><div style="position:absolute;left:8px;top:5px;right:6px;display:flex;flex-direction:column;gap:1px;white-space:nowrap;overflow:hidden"><span style="font:500 11.5px Geist,sans-serif;color:#A9ABB0">{{ bd.lab }}</span><span style="font:400 10px 'Geist Mono',monospace;color:#80838A">{{ bd.meta }}</span></div></div></sc-for>
+<sc-for list="{{ B.gaps }}" as="g" hint-placeholder-count="2"><div style="position:absolute;left:{{ g.x }};width:{{ g.w }};top:{{ g.y }};height:{{ g.h }};border-radius:3px;border:1px dashed #2E3035;box-sizing:border-box;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 6px 4px"><span style="font:400 10px 'Geist Mono',monospace;color:#80838A">{{ g.lab }}</span></div></sc-for>
+<div style="position:absolute;left:{{ dl.x }};width:{{ dl.w }};top:{{ dl.y }};height:2px;background:#F2F2EF;z-index:4"><span style="position:absolute;right:4px;bottom:4px;font:500 10px 'Geist Mono',monospace;white-space:nowrap">{{ dl.lab }}</span></div>
+<sc-for list="{{ B.blocks }}" as="k" hint-placeholder-count="12">
+<div style="position:absolute;left:{{ k.x }};top:{{ k.y }};width:{{ k.w }};height:{{ k.h }};border-radius:{{ k.r }};background:{{ k.bg }};box-shadow:{{ k.ring }};outline:{{ k.outline }};outline-offset:2px;transform:{{ k.tf }};z-index:{{ k.z }};overflow:hidden;padding:4px 7px;box-sizing:border-box;display:flex;flex-direction:column;gap:1px">
+<div style="position:absolute;inset:0;border-radius:inherit;border:1px dashed #80838A;opacity:{{ k.dash }}"></div>
+<span style="position:relative;font:600 12px/1.2 'Bricolage Grotesque',sans-serif;color:{{ k.tc }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ k.title }}</span>
+<span style="position:relative;font:400 10px 'Geist Mono',monospace;color:{{ k.sc }};white-space:nowrap">{{ k.time }}</span>
+</div>
+</sc-for>
+<div style="position:absolute;left:{{ ghost.x }};top:{{ ghost.y }};width:{{ ghost.w }};height:{{ ghost.h }};border-radius:3px;border:1.5px dashed {{ ghost.c }};box-sizing:border-box;z-index:8"></div>
+<div style="position:absolute;left:{{ ghost.lx }};top:{{ ghost.ly }};height:20px;padding:0 8px;border-radius:4px;background:#F2F2EF;color:#0F1012;font:600 10.5px/20px 'Geist Mono',monospace;white-space:nowrap;z-index:21">{{ ghost.lab }}</div>
+<div style="position:absolute;left:{{ B.nowX }};width:{{ B.nowW }};top:{{ B.nowY }};height:1.5px;background:#F2F2EF;z-index:6"><div style="position:absolute;left:-3px;top:-3px;width:7px;height:7px;border-radius:50%;background:#F2F2EF"></div></div>
+</div>
+</main>
+
+<section aria-label="Today" style="position:absolute;left:1040px;top:0;right:0;bottom:0;border-left:1px solid #2E3035;box-sizing:border-box;padding:28px 28px 0">
+<div style="display:flex;flex-direction:column;gap:10px">
+<span style="font:500 12.5px Geist,sans-serif;color:#80838A">Today</span>
+<h2 style="margin:0;font:600 22px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.01em">{{ tDate }}</h2>
+<div style="display:flex;align-items:baseline;gap:6px;font:400 14px Geist,sans-serif;flex-wrap:wrap"><span style="font-weight:600">{{ nowL }}</span><span>{{ nowT }}</span><span style="color:#80838A">{{ nowM }}</span></div>
+<div style="display:flex;justify-content:space-between;font:400 12px Geist,sans-serif;color:#A9ABB0;margin-top:4px"><span><span style="color:#F2F2EF;font-weight:500">{{ cap.p }}</span> planned</span><span><span style="color:#F2F2EF;font-weight:500">{{ cap.r }}</span> realistic</span></div>
+<div style="position:relative;height:8px;border-radius:2px;background:#1A1B1E">
+<sc-for list="{{ cap.segs }}" as="g" hint-placeholder-count="2"><div style="position:absolute;top:0;bottom:0;left:{{ g.l }};width:{{ g.w }};background:{{ g.bg }};box-shadow:inset -1px 0 0 #0F1012"></div></sc-for>
+<div style="position:absolute;top:0;bottom:0;left:{{ cap.pl }};width:{{ cap.pw }};background:repeating-linear-gradient(135deg,#80838A 0 1px,transparent 1px 4px)"></div>
+<div style="position:absolute;top:-4px;bottom:-4px;width:2px;background:#F2F2EF;left:{{ cap.m }}"></div>
+</div>
+<span style="font:500 10px 'Geist Mono',monospace;letter-spacing:.04em;color:#80838A">{{ cap.leg }}</span>
+</div>
+<div style="position:relative;margin-top:22px;height:470px">
+<sc-for list="{{ S.rows }}" as="r" hint-placeholder-count="6">
+<div style="position:absolute;left:0;right:0;top:{{ r.y }};height:{{ r.h }};display:flex;gap:8px">
+<span style="width:44px;flex:none;font:500 11px 'Geist Mono',monospace;color:#80838A;padding-top:8px">{{ r.time }}</span>
+<div style="flex:1;position:relative;border-radius:4px;background:{{ r.bg }};border:{{ r.bd }};box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 12px;min-width:0">
+<span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="flex:none;width:{{ r.sqW }};height:8px;border-radius:2px;background:{{ r.sq }}"></span><span style="font:{{ r.font }};color:{{ r.tc }};text-decoration:{{ r.deco }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.title }}</span><span style="font:600 9.5px 'Geist Mono',monospace;letter-spacing:.08em;color:{{ r.tc }}">{{ r.chip }}</span></span>
+<span style="flex:none;font:400 11px 'Geist Mono',monospace;color:{{ r.mc }}">{{ r.meta }}</span>
+</div>
+</div>
+</sc-for>
+<div style="position:absolute;left:0;right:0;top:{{ S.nowY }};height:0;z-index:5">
+<div style="position:absolute;left:0;top:-10px;height:20px;width:44px;border-radius:4px;background:#F2F2EF;color:#0F1012;font:600 11px/20px 'Geist Mono',monospace;text-align:center">19:10</div>
+<div style="position:absolute;left:52px;right:0;top:-0.75px;height:1.5px;background:#F2F2EF"></div>
+<div style="position:absolute;left:48px;top:-4px;width:8px;height:8px;border-radius:50%;background:#F2F2EF;animation:dPulse 2.6s cubic-bezier(.2,.6,.3,1) infinite"></div>
+</div>
+</div>
+<div style="position:absolute;left:28px;right:28px;bottom:22px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;padding-top:14px;border-top:1px solid #2E3035">
+<sc-for list="{{ keys }}" as="k" hint-placeholder-count="8"><div style="display:flex;align-items:center;gap:8px;font:400 12px Geist,sans-serif;color:#A9ABB0"><span style="min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;border-radius:4px;background:#1A1B1E;box-shadow:inset 0 -1px 0 #2E3035;display:inline-flex;align-items:center;justify-content:center;font:500 11px 'Geist Mono',monospace;color:#F2F2EF">{{ k.k }}</span>{{ k.t }}</div></sc-for>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+const PX = 1.1, GAP = 6, TAU = Math.PI * 2;
+const NEU = {
+  dark: { bg:'#0F1012', s1:'#1A1B1E', s2:'#25272B', ln:'#2E3035', tx:'#F2F2EF', t2:'#A9ABB0', t3:'#80838A', veil:'rgba(15,16,18,.86)', scrim:'rgba(0,0,0,.52)' },
+  light:{ bg:'#F4F3EF', s1:'#E8E7E2', s2:'#DCDAD3', ln:'#D3D1CA', tx:'#121212', t2:'#4D4D4A', t3:'#686863', veil:'rgba(244,243,239,.88)', scrim:'rgba(18,18,18,.30)' }
+};
+const CAT = {
+  study:{ n:'Study', c:'#2450E6', ink:'#FFFFFF' }, build:{ n:'Build', c:'#00875A', ink:'#FFFFFF' }, body:{ n:'Body', c:'#D9331A', ink:'#FFFFFF' },
+  people:{ n:'People', c:'#C92A76', ink:'#FFFFFF' }, self:{ n:'Self', c:'#F5B800', ink:'#1A1404' }, work:{ n:'Work', c:'#5A6B7D', ink:'#FFFFFF' }, rest:{ n:'Rest', c:'#8C6A40', ink:'#FFFFFF' }
+};
+const CATS = ['study', 'build', 'body', 'people', 'self', 'work', 'rest'];
+const DAYN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], DAYL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], DAY1 = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const dnum = d => d < 3 ? 28 + d : d - 2, dmon = d => d < 3 ? 'September' : 'October', dmons = d => d < 3 ? 'Sep' : 'Oct';
+const dayLabel = d => `${DAYL[d % 7]} ${dnum(d)} ${dmon(d)}`;
+const dayShort = d => `${DAYN[d % 7]} ${dnum(d)}`;
+const when = (d, m) => `${DAYN[d % 7]} ${dnum(d)} ${dmons(d)}, ${fmt(m)}`;
+const rgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+const hexA = (h, a) => { const c = rgb(h); return `rgba(${c[0]},${c[1]},${c[2]},${a})`; };
+const mixHex = (a, b, t) => { const A = rgb(a), B = rgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const ceil5 = m => Math.ceil(m / 5) * 5;
+const fmt = m => { m = ((Math.floor(m) % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+const dur = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}h ${r}m` : h ? `${h}h` : `${r}m`; };
+const hrs = x => dur(x * 60);
+
+const COMMITS = [
+  { id:'dinner', title:'Dinner', cat:'rest', s:1140, e:1200, days:'all', on:true, label:'Every day, 19:00 → 20:00' },
+  { id:'gym', title:'Gym', cat:'body', s:540, e:600, days:5, on:false, label:'Saturdays, 09:00 → 10:00' },
+  { id:'call', title:'Family call', cat:'people', s:1080, e:1110, days:6, on:false, label:'Sundays, 18:00 → 18:30' }
+];
+const defRoutine = () => ({ wake:420, ws:480, we:1140, sleep:1440, noWork:false, commits:COMMITS.map(c => ({ ...c })) });
+
+function baseItems(d, R) {
+  const wk = d % 7 < 5 && !R.noWork;
+  const out = [];
+  const ready = wk ? R.ws : R.wake + 60;
+  if (ready > R.wake) out.push({ id:'morn', k:'prot', title:'Getting ready', s:R.wake, e:ready });
+  if (wk) out.push({ id:'work', k:'fixed', cat:'work', title:'Office', s:R.ws, e:R.we });
+  R.commits.forEach(c => { if (!c.on) return; const ok = c.days === 'all' || (c.days === 'wk' && d % 7 < 5) || (c.days === 'we' && d % 7 >= 5) || c.days === d % 7; if (ok) out.push({ id:'c_' + c.id, k:'fixed', cat:c.cat, title:c.title, s:c.s, e:c.e }); });
+  out.push({ id:'wind', k:'prot', title:'Wind-down', s:R.sleep - 30, e:R.sleep });
+  out.sort((a, b) => a.s - b.s);
+  const res = []; let end = R.wake;
+  out.forEach(x => { const y = { ...x, s:Math.max(x.s, end), e:Math.min(x.e, R.sleep) }; if (y.e - y.s >= 10) { res.push(y); end = y.e; } });
+  return [{ id:'wake', k:'marker', title:'Wake', s:R.wake, e:R.wake }, ...res, { id:'sleep', k:'marker', title:'Sleep', s:R.sleep, e:R.sleep }];
+}
+const live = t => !t.deleted && !t.skipped && t.s != null;
+function buildDay(d, R, all) {
+  const base = baseItems(d, R);
+  const ts = all.filter(t => t.day === d && live(t)).slice().sort((a, b) => a.s - b.s);
+  const brks = [];
+  ts.forEach(t => { if (t.e - t.s < 120) return; const b = { id:'brk_' + t.id, k:'break', title:'Break', s:t.e, e:t.e + 15, parent:t.id };
+    if (b.e <= R.sleep && !ts.some(o => o !== t && o.s < b.e && o.e > b.s) && !base.some(x => x.k === 'fixed' && x.s < b.e && x.e > b.s)) brks.push(b); });
+  const cover = ts.concat(brks), items = [];
+  base.forEach(x => {
+    if (x.k !== 'prot') { items.push(x); return; }
+    let pcs = [[x.s, x.e]];
+    cover.forEach(t => { pcs = pcs.flatMap(([a, b]) => (t.e <= a || t.s >= b) ? [[a, b]] : [[a, Math.max(a, t.s)], [Math.min(b, t.e), b]].filter(([p, q]) => q - p >= 10)); });
+    pcs.forEach(([a, b], i) => items.push({ ...x, id:x.id + (i ? '_' + i : ''), s:a, e:b }));
+  });
+  const busy = items.filter(x => x.k !== 'marker').concat(cover).map(x => [x.s, x.e]).sort((a, b) => a[0] - b[0]);
+  const gaps = []; let c = R.wake;
+  busy.forEach(([a, b]) => { if (a - c >= 10) gaps.push({ id:'gap' + c, k:'open', title:'Open', s:c, e:a }); c = Math.max(c, b); });
+  if (R.sleep - c >= 10) gaps.push({ id:'gap' + c, k:'open', title:'Open', s:c, e:R.sleep });
+  const rank = x => x.id === 'wake' ? -1 : x.id === 'sleep' ? 1 : 0;
+  const seq = items.concat(ts.map(t => ({ ...t, k:'task', tid:t.id })), brks, gaps).sort((a, b) => a.s - b.s || rank(a) - rank(b));
+  let y = 0;
+  const laid = seq.map(it => { const dd = it.e - it.s; let h;
+    if (it.k === 'marker') h = 30; else if (it.k === 'fixed') h = dd > 90 ? 58 : Math.max(36, dd * PX); else if (it.k === 'break') h = 22; else if (it.k === 'prot') h = Math.max(28, dd * PX); else if (it.k === 'task') h = Math.max(44, dd * PX); else h = Math.max(36, dd * PX);
+    const o = { ...it, y, h }; y += h + GAP; return o; });
+  return { seq:laid, base, ts, brks, gaps, height:y };
+}
+function capOf(d, R, all, t0) {
+  const B = buildDay(d, R, all);
+  const cl = x => Math.max(0, x.e - Math.max(x.s, t0));
+  let avail = 0, brk = 0, planned = 0, done = 0; const segs = [];
+  B.seq.forEach(x => { if (x.k === 'open' || x.k === 'task' || x.k === 'break' || x.k === 'prot') avail += cl(x); if (x.k === 'break') brk += cl(x); });
+  const prot = B.base.filter(x => x.k === 'prot').reduce((a, x) => a + cl(x), 0);
+  B.ts.forEach(t => { if (t.done) { done += t.e - t.s; return; } const m = cl(t); if (m > 0) { planned += m; segs.push({ cat:t.cat, m, id:t.id }); } });
+  const buffer = Math.min(20, Math.max(0, avail - prot - brk));
+  let real = Math.max(0, avail - prot - brk - buffer);
+  if (d % 7 >= 5) real = Math.min(real, 360);
+  return { avail, prot, brk, buffer, real, planned, done, segs, over:planned - real, B };
+}
+function busyOf(d, R, all, o) {
+  const iv = [];
+  baseItems(d, R).forEach(x => { if (x.k === 'fixed') iv.push([x.s, x.e]); if (x.k === 'prot' && !(o.allowWind && x.id === 'wind')) iv.push([x.s, x.e]); });
+  all.forEach(t => { if (t.day !== d || !live(t) || t.id === o.excl) return; iv.push([t.s, t.e + (t.e - t.s >= 120 ? 15 : 0)]); });
+  return iv;
+}
+function earliestFree(iv, from, dd, limit) {
+  let x = from, moved = true, n = 0;
+  while (moved && n++ < 60) { moved = false; for (const [a, b] of iv) if (a < x + dd && b > x) { x = b; moved = true; } }
+  return x + dd <= limit ? x : null;
+}
+function findSlot(d, dd, R, all, o = {}) {
+  const lo = Math.max(R.wake, o.after || 0);
+  const pf = o.at != null ? o.at : o.pref === 'morning' ? 540 : o.pref === 'afternoon' ? 780 : o.pref === 'evening' ? 1080 : (d % 7 >= 5 ? 600 : 0);
+  const tries = [Math.max(lo, pf), lo];
+  for (const wind of o.allowWind ? [false, true] : [false]) {
+    const iv = busyOf(d, R, all, { excl:o.excl, allowWind:wind });
+    for (const f of tries) { const x = earliestFree(iv, ceil5(f), dd, R.sleep); if (x != null) return { s:x, e:x + dd, over:wind }; }
+  }
+  return null;
+}
+function ripple(all, id, day, s, R) {
+  const t = all.find(x => x.id === id), dd = t.e - t.s;
+  const baseIv = busyOf(day, R, [], {});
+  let st = earliestFree(baseIv, s, dd, R.sleep + 180); if (st == null) st = s;
+  const moved = { ...t, day, s:st, e:st + dd };
+  const occ = baseIv.concat([[moved.s, moved.e + (dd >= 120 ? 15 : 0)]]);
+  all.forEach(x => { if (x.id !== id && x.day === day && live(x) && x.done) occ.push([x.s, x.e]); });
+  const upd = {};
+  all.filter(x => x.id !== id && x.day === day && live(x) && !x.done).sort((a, b) => a.s - b.s).forEach(o => {
+    const od = o.e - o.s; const ns = earliestFree(occ, o.s, od, 99999); upd[o.id] = { s:ns, e:ns + od }; occ.push([ns, ns + od + (od >= 120 ? 15 : 0)]); });
+  return all.map(x => x.id === id ? moved : upd[x.id] ? { ...x, ...upd[x.id] } : x);
+}
+const mk = (id, title, cat, day, s, d, x) => ({ id, title, cat, day, s, e:s == null ? null : s + d, dur:d, done:false, skipped:false, deleted:false, prio:'normal', deadline:null, recur:null, src:'manual', ...(x || {}) });
+const INBOX = () => [mk('i1', 'Read Laxmikanth ch. 4', 'study', null, null, 45), mk('i2', 'Call family', 'people', null, null, 30), mk('i3', 'Plan the week', 'self', null, null, 20)];
+function guessCat(t) {
+  t = (t || '').toLowerCase();
+  if (/polity|study|upsc|revise|exam|history|laxmikanth|test/.test(t)) return 'study';
+  if (/flutter|code|build|wmm|app|project|design/.test(t)) return 'build';
+  if (/gym|exercise|run|yoga|walk|workout|swim/.test(t)) return 'body';
+  if (/call|family|friend|mum|mom|dad|dinner with/.test(t)) return 'people';
+  if (/read|journal|plan|meditat|write/.test(t)) return 'self';
+  if (/office|meeting|report|email|work/.test(t)) return 'work';
+  if (/rest|nap|break|relax/.test(t)) return 'rest';
+  return 'self';
+}
+const CMDS = [
+  { k:'multi', say:'Tomorrow I want to study polity for two hours, exercise for 45 minutes and learn Flutter for one hour.', key:['tomorrow', 'study', 'polity', 'two', 'hours', 'exercise', '45', 'minutes', 'learn', 'flutter', 'one', 'hour'] },
+  { k:'add', say:'Add gym tomorrow for one hour.', key:['add', 'gym', 'tomorrow', 'one', 'hour'] },
+  { k:'move', say:'Move gym to Saturday.', key:['move', 'gym', 'saturday'] },
+  { k:'complete', say:'Mark gym complete.', key:['mark', 'gym', 'complete'] },
+  { k:'del', say:'Delete my gym task.', key:['delete', 'gym'] },
+  { k:'ask', say:'What do I have tomorrow?', key:['what', 'have', 'tomorrow'] },
+  { k:'evening', say:'Plan my evening.', key:['plan', 'evening'] },
+  { k:'resched', say:'Reschedule unfinished tasks.', key:['reschedule', 'unfinished'] },
+  { k:'recur', say:'Add a recurring gym session every Monday.', key:['recurring', 'gym', 'every', 'monday'] }
+];
+const WMOCK = { study:[0, 0, 1.67, 1.5, 1.5, 2, 2], build:[0, 0, 0, 1, 0.5, 3, 1], body:[0, 0, 0, 0, 0, 0.75, 0.75], people:[0, 0, 0, 0, 0.5, 1, 0.5], self:[0, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5], rest:[0, 1, 1, 1, 1, 1, 1], work:[0, 11, 11, 11, 11, 0, 0] };
+const WENV = [0, 1.25, 4, 4.5, 4.25, 9.25, 6.75];
+const HEATF = (r, c) => {
+  const h = 6 + c / 2, wk = r < 5; let v = 0;
+  const q = Math.abs((Math.sin((r + 1) * 12.9898 + (c + 1) * 78.233) * 43758.5453) % 1);
+  if (h >= 7 && h < 8) v = wk ? 1.2 : 0.4;
+  if (!wk && h >= 10 && h < 13) v = 2.2;
+  if (!wk && h >= 14 && h < 17) v = r === 5 ? 3 : 1.4;
+  if (h >= 20 && h < 20.5) v = 1.8;
+  if (h >= 20.5 && h < 22.5) v = wk ? 3.4 : 2.4;
+  if (h >= 22.5 && h < 23.5) v = wk ? 1.6 : 0.8;
+  v += (q - 0.5) * 1.3;
+  return v < 0.6 ? 0 : Math.max(0, Math.min(4, Math.round(v)));
+};
+const ICON = {
+  plus:'M12 5v14M5 12h14', close:'M6 6l12 12M18 6L6 18', back:'M15 5l-7 7 7 7', chev:'M9 5l7 7-7 7',
+  sliders:'M4 7h9M17 7h3M4 17h3M11 17h9', mic:'M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zM6 11a6 6 0 0 0 12 0M12 17v3',
+  cloudoff:'M7.5 18h9.5a3.5 3.5 0 0 0 .6-6.95A5.5 5.5 0 0 0 7 9.7 4.2 4.2 0 0 0 7.5 18zM4 4l16 16', cloud:'M7.5 18h9.5a3.5 3.5 0 0 0 .6-6.95A5.5 5.5 0 0 0 7 9.7 4.2 4.2 0 0 0 7.5 18z'
+};
+
+function drawOrb(cv, p, t, opt) {
+  if (!cv) return; const ctx = cv.getContext('2d'), S = cv.width; let c = S / 2; const cy = S / 2;
+  ctx.clearRect(0, 0, S, S);
+  const core = p.core || [236, 233, 226];
+  const R = S * 0.2 * (1 + 0.06 * p.succ) * (1 - 0.08 * p.cancel);
+  c += Math.sin(t * 38) * p.cancel * R * 0.09;
+  const css = (k, a) => a == null ? `rgb(${k[0] | 0},${k[1] | 0},${k[2] | 0})` : `rgba(${k[0] | 0},${k[1] | 0},${k[2] | 0},${a})`;
+  const mixc = (a, b, q) => a.map((v, i) => v + (b[i] - v) * q);
+  const halo = Math.min(1, p.amp) * (1 - p.succ) * (1 - p.deny);
+  if (halo > 0.03) { const g = ctx.createRadialGradient(c, cy, R * 0.9, c, cy, R * 2.2); g.addColorStop(0, css(core, 0.18 * halo)); g.addColorStop(1, css(core, 0)); ctx.fillStyle = g; ctx.fillRect(0, 0, S, S); }
+  for (const rp of p.ripples) { const age = (t - rp.t0) / 1.7; if (age < 0 || age > 1) continue; ctx.strokeStyle = css(core, (1 - age) * (1 - age) * 0.6 * rp.s); ctx.lineWidth = S * (0.006 * (1 - age) + 0.0015); ctx.beginPath(); ctx.arc(c, cy, R * (1.06 + age * 1.2), 0, TAU); ctx.stroke(); }
+  const M = 120, pts = [];
+  for (let i = 0; i < M; i++) {
+    const th = i / M * TAU;
+    let d = p.amp * (0.11 * Math.sin(3 * th + t * 2.3) + 0.07 * Math.sin(5 * th - t * 3.2) + 0.04 * Math.sin(9 * th + t * 5.1))
+      + 0.016 * Math.sin(2 * th + t * 0.9) * (0.35 + p.idle) + p.wob * 0.08 * Math.cos(2 * th)
+      + p.proc * 0.03 * Math.pow(Math.max(0, Math.cos(th - t * 2.6)), 6) - p.pulse * 0.05;
+    d *= (1 - p.succ * 0.85); const r = R * (1 + d); pts.push([c + r * Math.cos(th), cy + r * Math.sin(th)]);
+  }
+  const path = () => { ctx.beginPath(); for (let i = 0; i <= M; i++) { const a = pts[i % M], b = pts[(i + 1) % M]; const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2; if (i === 0) ctx.moveTo(mx, my); else ctx.quadraticCurveTo(a[0], a[1], mx, my); } ctx.closePath(); };
+  ctx.save(); ctx.shadowColor = opt.light ? 'rgba(25,20,10,.30)' : 'rgba(0,0,0,.65)'; ctx.shadowBlur = S * 0.06; ctx.shadowOffsetY = S * 0.025;
+  const g = ctx.createRadialGradient(c - R * 0.35, cy - R * 0.42, R * 0.04, c, cy, R * 1.15);
+  g.addColorStop(0, '#3d3f44'); g.addColorStop(0.5, '#18191c'); g.addColorStop(1, '#050506'); path(); ctx.fillStyle = g; ctx.fill(); ctx.restore();
+  ctx.save(); path(); ctx.clip();
+  const lit = 1 - 0.7 * p.deny - 0.5 * p.cancel;
+  const spill = ctx.createRadialGradient(c, cy + R * 0.2, 0, c, cy + R * 0.2, R * 1.15); spill.addColorStop(0, css(core, 0.34 * lit)); spill.addColorStop(1, css(core, 0)); ctx.fillStyle = spill; ctx.fillRect(0, 0, S, S);
+  const breath = 0.5 + 0.5 * Math.sin(t * 1.5);
+  let cr = R * (0.24 + 0.04 * breath * p.idle + p.amp * 0.2) * (1 - 0.5 * p.proc) * (1 - 0.3 * p.cancel); cr += (R * 0.95 - cr) * p.succ;
+  const corePath = () => { ctx.beginPath(); for (let i = 0; i <= 64; i++) { const th = i / 64 * TAU; const dd = 1 + p.amp * (0.16 * Math.sin(2 * th - t * 3) + 0.09 * Math.sin(4 * th + t * 4.2)) * (1 - p.succ); const x = c + cr * dd * Math.cos(th), y = cy + cr * dd * Math.sin(th); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); };
+  ctx.save();
+  if (p.deny > 0.5) { corePath(); ctx.strokeStyle = css(mixc(core, [120, 122, 128], 0.5), 0.9); ctx.lineWidth = S * 0.012; ctx.stroke(); ctx.beginPath(); ctx.moveTo(c - cr * 0.8, cy + cr * 0.8); ctx.lineTo(c + cr * 0.8, cy - cr * 0.8); ctx.stroke(); }
+  else {
+    ctx.shadowColor = css(core, 0.95 * lit); ctx.shadowBlur = R * 0.55 * lit;
+    const cg = ctx.createRadialGradient(c - cr * 0.3, cy - cr * 0.35, 0, c, cy, cr * 1.15);
+    cg.addColorStop(0, css(mixc(core, [255, 255, 255], 0.5))); cg.addColorStop(0.45, css(core)); cg.addColorStop(1, css(mixc(core, [0, 0, 0], 0.22)));
+    ctx.globalAlpha = 0.35 + 0.65 * lit; ctx.fillStyle = cg; corePath(); ctx.fill(); ctx.globalAlpha = 1;
+  }
+  if (p.proc > 0.02) for (let k = 0; k < 3; k++) { const a = t * 2.8 + k * TAU / 3, rr = R * 0.46; ctx.beginPath(); ctx.arc(c + Math.cos(a) * rr, cy + Math.sin(a) * rr, R * 0.085 * p.proc, 0, TAU); ctx.fillStyle = css(mixc(core, [255, 255, 255], 0.2), p.proc); ctx.fill(); }
+  ctx.restore();
+  const fr = ctx.createRadialGradient(c, cy, R * 0.72, c, cy, R * 1.1); fr.addColorStop(0, 'rgba(255,255,255,0)'); fr.addColorStop(1, 'rgba(255,255,255,0.14)'); ctx.fillStyle = fr; ctx.fillRect(0, 0, S, S);
+  ctx.save(); ctx.translate(c - R * 0.34 + p.wob * R * 0.05, cy - R * 0.5); ctx.rotate(-0.5); ctx.scale(1, 0.55);
+  const sg = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 0.44); sg.addColorStop(0, 'rgba(255,255,255,0.55)'); sg.addColorStop(0.45, 'rgba(255,255,255,0.12)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(0, 0, R * 0.44, 0, TAU); ctx.fill(); ctx.restore(); ctx.restore();
+  const rg = ctx.createLinearGradient(c - R, cy - R, c + R, cy + R); rg.addColorStop(0, 'rgba(255,255,255,.4)'); rg.addColorStop(0.5, 'rgba(255,255,255,.05)'); rg.addColorStop(1, 'rgba(255,255,255,.16)');
+  path(); ctx.strokeStyle = rg; ctx.lineWidth = S * 0.003; ctx.stroke();
+  if (p.succ > 0.35) {
+    const q = Math.min(1, (p.succ - 0.35) / 0.55); const P = [[-0.26, 0.01], [-0.07, 0.19], [0.27, -0.17]].map(([x, y]) => [c + x * R, cy + y * R]);
+    const l1 = Math.hypot(P[1][0] - P[0][0], P[1][1] - P[0][1]), l2 = Math.hypot(P[2][0] - P[1][0], P[2][1] - P[1][1]); let L = q * (l1 + l2);
+    ctx.beginPath(); ctx.moveTo(P[0][0], P[0][1]);
+    if (L <= l1) ctx.lineTo(P[0][0] + (P[1][0] - P[0][0]) * L / l1, P[0][1] + (P[1][1] - P[0][1]) * L / l1); else { ctx.lineTo(P[1][0], P[1][1]); L -= l1; ctx.lineTo(P[1][0] + (P[2][0] - P[1][0]) * L / l2, P[1][1] + (P[2][1] - P[1][1]) * L / l2); }
+    const lum = (0.299 * core[0] + 0.587 * core[1] + 0.114 * core[2]) / 255;
+    ctx.strokeStyle = lum > 0.62 ? '#1a1404' : '#ffffff'; ctx.lineWidth = S * 0.022; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+  }
+}
+const smoothPath = (pts) => { let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`; for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], mx = (x1 - x0) / 2; d += ` C${(x0 + mx).toFixed(1)} ${y0.toFixed(1)} ${(x1 - mx).toFixed(1)} ${y1.toFixed(1)} ${x1.toFixed(1)} ${y1.toFixed(1)}`; } return d; };
+function arcD(cx, cy, r, m0, m1) {
+  const pt = m => { const a = m / 1440 * TAU - Math.PI / 2; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+  const [x0, y0] = pt(m0), [x1, y1] = pt(m1);
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${(m1 - m0) > 720 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+}
+
+/* ---- responsive kit: same scheduler + layout maths as the phone ---- */
+function weekSnapshot() {
+  const I = INBOX();
+  const pol = mk('t1', 'Study polity', 'study', 2, 1200, 120, { done:true }); pol.e = 1300;
+  return [pol, mk('t2', 'Exercise', 'body', 5, 600, 45, { moved:1 }), mk('t3', 'Learn Flutter', 'build', 3, 1200, 60, { moved:1 }), { ...I[0], day:3, s:1275, e:1320 },
+    mk('t4', 'Revise polity notes', 'study', 4, 1200, 90), { ...I[1], day:4, s:1290, e:1320 }, mk('t6', 'Polity practice test', 'study', 5, 660, 120), mk('t5', 'WMM side project', 'build', 5, 840, 180),
+    mk('t7', 'Flutter: state management', 'build', 5, 1200, 90), mk('t8', 'Polity: fundamental rights', 'study', 6, 600, 120), mk('t9', 'Read fiction', 'self', 6, 960, 60), { ...I[2], day:6, s:1080, e:1100 }];
+}
+function board(o) {
+  const { tasks, R, today, now, x0, widths, gap, top, H, t0, t1, bg, dark, textMinW, sel } = o;
+  const K = H / (t1 - t0), yOf = m => top + (clamp(m, t0, t1) - t0) * K;
+  const xs = []; let x = x0; widths.forEach(w => { xs.push(x); x += w + gap; });
+  const tint = (c, a) => mixHex(bg, CAT[c].c, a);
+  const cols = [0, 1, 2, 3, 4, 5, 6].map(d => { const c0 = capOf(d, R, tasks, 0), tot = c0.planned + c0.done, over = tot - c0.real, bw = widths[d] - 12, sc = Math.max(tot, c0.real, 1);
+    return { x:xs[d] + 'px', w:widths[d] + 'px', label:`${DAYN[d]} ${dnum(d)}`, cap:over > 15 ? `+${dur(over)}` : `${dur(tot)} / ${dur(c0.real)}`, capC:over > 15 ? (dark ? '#F2F2EF' : '#121212') : (dark ? '#80838A' : '#686863'), hc:d === today ? (dark ? '#F2F2EF' : '#121212') : (dark ? '#A9ABB0' : '#4D4D4A'), hw:d === today ? '600' : '500',
+      bg:d === sel ? (dark ? '#1A1B1E' : '#E8E7E2') : 'transparent', o:d < today ? '0.62' : '1', bw:bw + 'px', fill:(Math.min(tot, c0.real) / sc * bw) + 'px', ovL:(c0.real / sc * bw) + 'px', ovW:(Math.max(0, over) / sc * bw) + 'px', today:d === today }; });
+  const bands = [];
+  for (let d = 0; d < 7; d++) baseItems(d, R).forEach(it => { if (it.k === 'marker' || it.e <= t0) return; const y = yOf(it.s), h = Math.max(2, yOf(it.e) - y - 1);
+    bands.push({ x:xs[d] + 'px', w:widths[d] + 'px', y:y + 'px', h:h + 'px', bg:it.k === 'fixed' ? tint(it.cat, dark ? 0.3 : 0.24) : `repeating-linear-gradient(135deg,${dark ? '#2E3035' : '#D3D1CA'} 0 1px,transparent 1px 5px)`, lab:widths[d] >= textMinW && h >= 16 ? it.title : '', meta:widths[d] >= textMinW && h >= 30 ? `${fmt(it.s)} → ${fmt(it.e)}` : '', o:d < today ? '0.62' : '1' }); });
+  const nextT = tasks.filter(t => live(t) && t.day === today && !t.done && t.s >= now).sort((a, b) => a.s - b.s)[0];
+  const blocks = tasks.filter(t => live(t) && t.day >= 0 && t.day < 7).map(t => {
+    const d = t.day, C = CAT[t.cat], wide = widths[d] >= textMinW, missed = !t.done && (d < today || (d === today && t.e <= now)), isN = d === today && !t.done && now >= t.s && now < t.e, nx = nextT && nextT.id === t.id, full = t.done || isN || nx;
+    const y = yOf(t.s), h = Math.max(3, yOf(t.e) - y - 1);
+    const lw = 4, bx = wide ? xs[d] + 3 : xs[d] + widths[d] / 2 - lw / 2, bw = wide ? widths[d] - 6 : lw;
+    return { id:t.id, x:bx + 'px', y:y + 'px', w:bw + 'px', h:h + 'px', bg:missed ? 'transparent' : full ? C.c : wide ? tint(t.cat, dark ? 0.28 : 0.22) : mixHex(bg, C.c, 0.55), r:wide ? '3px' : '2px', dash:missed ? '1' : '0',
+      title:wide && h >= 13 ? t.title : '', time:wide && h >= 30 ? `${fmt(t.s)} → ${fmt(t.e)}` : '', tc:full && !missed ? C.ink : missed ? (dark ? '#A9ABB0' : '#4D4D4A') : (dark ? '#F2F2EF' : '#121212'), sc:full && !missed ? hexA(C.ink, 0.75) : (dark ? '#80838A' : '#686863'),
+      ring:'none', tf:'none', z:'2', outline:'none' };
+  });
+  const gaps = [];
+  if (sel != null) buildDay(sel, R, tasks).gaps.forEach(g => { if (g.e - g.s < 40 || g.e <= t0) return; const a = Math.max(g.s, t0), y = yOf(a), h = yOf(g.e) - y - 2; gaps.push({ x:(xs[sel] + 3) + 'px', w:(widths[sel] - 6) + 'px', y:y + 'px', h:h + 'px', lab:h >= 18 ? `${dur(g.e - a)} free` : '' }); });
+  const axis = []; for (let m = t0; m <= t1; m += 180) axis.push({ y:(yOf(m) - 6) + 'px', t:m === 1440 ? '24' : fmt(m).slice(0, 2) });
+  return { cols, bands, blocks, gaps, axis, nowX:xs[today] + 'px', nowW:widths[today] + 'px', nowY:yOf(now) + 'px', yOf, xs };
+}
+function strip(o) {
+  const { d, R, tasks, now, px, from, to, bg, dark } = o;
+  const B = buildDay(d, R, tasks), tint = (c, a) => mixHex(bg, CAT[c].c, a);
+  const cur = B.ts.find(t => !t.done && now >= t.s && now < t.e), next = B.ts.find(t => !t.done && t.s >= now);
+  const rows = B.seq.filter(x => x.e > from && x.s < to && x.k !== 'marker').map(x => {
+    const a = Math.max(x.s, from), b = Math.min(x.e, to), y = (a - from) * px, h = Math.max(x.k === 'task' ? 30 : 16, (b - a) * px - 4);
+    const C = x.cat ? CAT[x.cat] : null, isC = cur && x.tid === cur.id, isN = next && x.tid === next.id, full = x.k === 'task' && (isC || isN) && !x.done;
+    return { y:y + 'px', h:h + 'px', time:x.k === 'break' ? '' : fmt(x.s), title:x.k === 'open' ? '' : x.k === 'break' ? `Break ${dur(x.e - x.s)}` : x.title, meta:x.k === 'open' ? `Open ${dur(b - a)}` : x.k === 'task' ? `${fmt(x.s)} → ${fmt(x.e)}` : x.k === 'fixed' ? dur(x.e - x.s) : x.k === 'prot' ? 'protected' : '',
+      bg:x.k === 'task' ? (x.done ? bg : full ? C.c : tint(x.cat, dark ? 0.2 : 0.16)) : x.k === 'fixed' ? tint(x.cat, dark ? 0.26 : 0.2) : x.k === 'prot' ? `repeating-linear-gradient(135deg,${dark ? '#2E3035' : '#D3D1CA'} 0 1px,transparent 1px 7px)` : 'transparent',
+      bd:x.k === 'open' ? `1px dashed ${dark ? '#2E3035' : '#D3D1CA'}` : x.k === 'break' ? 'none' : x.done ? `1px solid ${dark ? '#2E3035' : '#D3D1CA'}` : 'none',
+      tc:full ? C.ink : x.done ? (dark ? '#80838A' : '#686863') : (dark ? '#F2F2EF' : '#121212'), mc:full ? hexA(C.ink, 0.78) : (dark ? '#80838A' : '#686863'), deco:x.done ? 'line-through' : 'none',
+      font:x.k === 'task' ? "600 14px 'Bricolage Grotesque',sans-serif" : '500 12.5px Geist,sans-serif', chip:isC ? 'NOW' : isN ? 'NEXT' : '', sq:x.k === 'task' && !full ? C.c : 'transparent', sqW:x.k === 'task' && !full ? '8px' : '0px', line:x.k === 'break' };
+  });
+  return { rows, nowY:((now - from) * px) + 'px', cur, next };
+}
+
+class Component extends DCLogic {
+  orbRef = React.createRef();
+  componentDidMount() {
+    const rm = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const p = { amp:0.03, idle:1, proc:0, succ:0, wob:0, pulse:0, cancel:0, deny:0, ripples:[], core:this.core || null };
+    const loop = ts => { drawOrb(this.orbRef.current, p, rm ? 1.2 : ts / 1000, { light:this.light }); if (!rm) this.raf = requestAnimationFrame(loop); };
+    this.raf = requestAnimationFrame(loop);
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+  renderVals() {
+    const R = defRoutine(), base = weekSnapshot(), today = 3, now = 1150;
+    const prop = ripple(base, 't4', 5, 600, R);
+    const pushed = prop.filter(x => { const o = base.find(y => y.id === x.id); return x.id !== 't4' && o && (o.s !== x.s || o.day !== x.day); }).length;
+    const widths = Array(7).fill(96);
+    const B = board({ tasks:prop, R, today, now, x0:62, widths, gap:8, top:212, H:648, t0:360, t1:1440, bg:'#0F1012', dark:true, textMinW:80, sel:null });
+    const g = B.blocks.find(b => b.id === 't4');
+    const ghost = { x:g.x, y:g.y, w:g.w, h:g.h, c:CAT.study.c, lab:`Sat 10:00 → 11:30, ${pushed} blocks make room`, lx:(parseFloat(g.x) - 120) + 'px', ly:(parseFloat(g.y) - 26) + 'px' };
+    B.blocks = B.blocks.map(b => {
+      if (b.id === 't4') return { ...b, x:(parseFloat(b.x) + 16) + 'px', y:(parseFloat(b.y) + 12) + 'px', tf:'scale(1.03)', ring:'inset 0 0 0 1.5px #F2F2EF', z:'20', bg:mixHex('#0F1012', CAT.study.c, 0.34) };
+      if (b.id === 't3') return { ...b, ring:'inset 0 0 0 1px rgba(255,255,255,.4)', bg:mixHex(CAT.build.c, '#ffffff', 0.06) };
+      if (b.id === 'i2') return { ...b, outline:'2px solid #F2F2EF' };
+      return b; });
+    const dl = { x:B.xs[4] + 'px', w:'96px', y:(B.yOf(1080) - 1) + 'px', lab:'Due 18:00, WMM report' };
+    const S = strip({ d:3, R, tasks:base, now, px:1.12, from:1080, to:1440, bg:'#0F1012', dark:true });
+    const c = capOf(3, R, base, now), sc = Math.max(c.avail, c.planned, 1), pc = m => (m / sc * 100).toFixed(2) + '%';
+    let acc = 0; const segs = c.segs.map(q => { const o = { l:pc(acc), w:pc(q.m), bg:CAT[q.cat].c }; acc += q.m; return o; });
+    const cap = { p:dur(c.planned), r:dur(c.real), segs, pl:pc(c.avail - c.prot), pw:pc(c.prot), m:pc(c.real), leg:`AVAILABLE ${dur(c.avail)}   PROTECTED ${dur(c.prot)}   BUFFER ${dur(c.buffer)}` };
+    let wp = 0, wr = 0; const tots = [0, 1, 2, 3, 4, 5, 6].map(d => { const q = capOf(d, R, base, 0); wp += q.planned + q.done; wr += q.real; return q.planned + q.done; });
+    const mx = Math.max(...tots, 1);
+    this.core = null; this.light = false;
+    return { orbRef:this.orbRef, B, ghost, dl, S, cap, cloud:ICON.cloud, sliders:ICON.sliders,
+      tDate:'Thursday 1 October', nowL:'Now', nowT:'Dinner', nowM:'then Learn Flutter at 20:00',
+      nav:[['Today', 'T', false], ['Plan', 'P', true], ['Progress', 'G', false]].map(([t, k, on]) => ({ t, k, bg:on ? '#1A1B1E' : 'transparent', c:on ? '#F2F2EF' : '#A9ABB0' })),
+      segs:['Today', 'Tomorrow', 'Week', 'Upcoming'].map(t => ({ t, bg:t === 'Week' ? '#25272B' : 'transparent', c:t === 'Week' ? '#F2F2EF' : '#80838A' })),
+      wkPlanned:dur(wp), wkReal:dur(wr), wkBars:tots.map((v, d) => ({ h:Math.max(2, v / mx * 36) + 'px', bg:d === today ? '#F2F2EF' : d < today ? '#80838A' : '#2E3035', l:DAY1[d], c:d === today ? '#F2F2EF' : '#80838A' })),
+      keys:[['N', 'New task'], ['V', 'Talk to Planner'], ['T', 'Jump to today'], ['← →', 'Previous or next day'], ['Enter', 'Open the focused block'], ['Space', 'Complete it'], ['Alt ↑↓', 'Move 15 minutes'], ['Alt ←→', 'Move a day'], ['Ctrl Z', 'Undo'], ['?', 'Every shortcut']].map(([k, t]) => ({ k, t })) };
+  }
+}
+</script>
+</body>
+</html>

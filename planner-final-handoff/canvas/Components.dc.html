@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Planner components</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Geist,system-ui,sans-serif;background:#F4F3EF;color:#121212;-webkit-font-smoothing:antialiased}
+@keyframes cShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+@keyframes cPulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(3.4);opacity:0}}
+@keyframes cBar{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:1440px;height:4300px;box-sizing:border-box;padding:72px 80px;display:flex;flex-direction:column;gap:64px;background:#F4F3EF;color:#121212;font-family:Geist,sans-serif">
+
+<header style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px">
+<div style="grid-column:span 7;display:flex;flex-direction:column;gap:14px"><h1 style="margin:0;font:600 64px/0.98 'Bricolage Grotesque',sans-serif;letter-spacing:-0.035em">Components</h1><p style="margin:0;font:400 18px/1.5 Geist,sans-serif;color:#4D4D4A;text-wrap:pretty">Each block is one Flutter widget. The states shown are all of its states: if a state isn’t here, it doesn’t exist. Specimens are drawn at 1:1 in the dark theme, the default, with light-theme checks where colour changes meaning.</p></div>
+<div style="grid-column:9 / span 4;display:flex;flex-direction:column;gap:8px;padding-top:12px;font:400 13.5px/1.5 Geist,sans-serif;color:#4D4D4A"><span style="font:600 15px 'Bricolage Grotesque',sans-serif;color:#121212">Every interactive widget gets</span><span>Default, Hover (desktop, web), Pressed, Focused (2px tx ring, 2px offset), Loading, Success, Error, Disabled and, where it applies, Completed.</span><span>Targets are 44 × 44 minimum. Every widget has a Semantics label, written out in its spec.</span></div>
+</header>
+
+<section style="display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0;font:600 32px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">TaskBlock</h2><span style="font:500 13px 'Geist Mono',monospace;color:#4D4D4A">widgets/timeline/task_block.dart</span></div>
+<div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px">
+<div style="grid-column:span 8;padding:26px;border-radius:12px;background:#0F1012;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px 18px">
+<sc-for list="{{ blocks }}" as="b" hint-placeholder-count="15">
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font:500 11px 'Geist Mono',monospace;color:#A9ABB0;letter-spacing:.04em">{{ b.label }}</span>
+<div style="position:relative;height:{{ b.h }};opacity:{{ b.op }}">
+<div style="position:absolute;inset:0;border-radius:4px;background:{{ b.under }};overflow:hidden">
+<div style="position:absolute;inset:0;border-radius:4px;background:{{ b.bg }};box-shadow:{{ b.ring }};outline:{{ b.outline }};outline-offset:2px;transform:{{ b.tf }};overflow:hidden;display:flex;align-items:{{ b.align }};padding:{{ b.pad }};box-sizing:border-box;gap:8px">
+<div style="position:absolute;inset:0;border-radius:4px;border:1px dashed #80838A;opacity:{{ b.dashO }}"></div>
+<div style="position:absolute;left:0;top:0;bottom:0;width:{{ b.elapsed }};background:rgba(0,0,0,.18)"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;height:{{ b.ovH }};background:repeating-linear-gradient(135deg,{{ b.ovC }} 0 2px,transparent 2px 6px)"></div>
+<div style="position:absolute;left:0;top:0;bottom:0;width:{{ b.sweep }};background:{{ b.sweepC }};opacity:.9"></div>
+<sc-if value="{{ b.shimmer }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;background:#1A1B1E"></div><div style="position:absolute;left:14px;top:14px;width:46%;height:10px;border-radius:2px;background:#25272B"></div><div style="position:absolute;left:14px;top:30px;width:28%;height:8px;border-radius:2px;background:#25272B"></div><div style="position:absolute;top:0;bottom:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:cShimmer 1.4s cubic-bezier(.4,0,.2,1) infinite"></div></sc-if>
+<span style="position:relative;flex:1;display:flex;flex-direction:column;gap:3px;min-width:0;opacity:{{ b.txO }}">
+<span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="flex:none;width:{{ b.sqW }};height:8px;border-radius:2px;background:{{ b.sq }}"></span><span style="font:600 15px/1.2 'Bricolage Grotesque',sans-serif;color:{{ b.tc }};text-decoration:{{ b.deco }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.title }}</span><span style="flex:none;font:600 9.5px 'Geist Mono',monospace;letter-spacing:.08em;color:{{ b.cc }}">{{ b.chip }}</span></span>
+<span style="font:400 12px 'Geist Mono',monospace;color:{{ b.sc }}">{{ b.meta }}</span>
+</span>
+<span style="position:relative;flex:none;width:22px;height:22px;margin-right:9px;border-radius:50%;border:1.5px solid {{ b.kb }};background:{{ b.kbg }};box-sizing:border-box;opacity:{{ b.kO }};display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 14 14" style="opacity:{{ b.tick }}"><path d="M3 7.2l2.6 2.6L11 4.4" style="fill:none;stroke:#0F1012;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round"></path></svg></span>
+</div>
+</div>
+</div>
+<span style="font:400 11.5px/1.4 Geist,sans-serif;color:#80838A">{{ b.note }}</span>
+</div>
+</sc-for>
+</div>
+<div style="grid-column:9 / span 4;display:flex;flex-direction:column">
+<sc-for list="{{ taskSpec }}" as="s" hint-placeholder-count="10"><div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:9px 0;border-top:1px solid #D3D1CA;font:400 12.5px/1.45 Geist,sans-serif"><span style="font:500 12px 'Geist Mono',monospace">{{ s.k }}</span><span style="color:#4D4D4A">{{ s.v }}</span></div></sc-for>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;padding:22px;border-radius:12px;background:#F4F3EF;box-shadow:inset 0 0 0 1px #D3D1CA">
+<sc-for list="{{ lightBlocks }}" as="b" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:8px"><span style="font:500 11px 'Geist Mono',monospace;color:#4D4D4A">{{ b.label }}</span><div style="position:relative;height:48px;border-radius:4px;background:{{ b.bg }};box-shadow:{{ b.ring }};display:flex;align-items:center;gap:8px;padding:0 14px"><span style="width:{{ b.sqW }};height:8px;border-radius:2px;background:{{ b.sq }}"></span><span style="flex:1;font:600 15px 'Bricolage Grotesque',sans-serif;color:{{ b.tc }};text-decoration:{{ b.deco }}">{{ b.title }}</span><span style="font:400 12px 'Geist Mono',monospace;color:{{ b.sc }}">{{ b.meta }}</span></div></div></sc-for>
+</div>
+</section>
+
+<section style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;row-gap:20px">
+<div style="grid-column:span 12;display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0;font:600 32px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">Timeline rows and the now-line</h2><span style="font:500 13px 'Geist Mono',monospace;color:#4D4D4A">widgets/timeline/*.dart</span></div>
+<div style="grid-column:span 7;padding:26px;border-radius:12px;background:#0F1012;display:flex;flex-direction:column;gap:6px;position:relative">
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="7">
+<div style="display:flex;gap:8px;height:{{ r.h }}">
+<span style="width:44px;flex:none;font:500 11px 'Geist Mono',monospace;color:#80838A;padding-top:{{ r.pt }}">{{ r.time }}</span>
+<div style="flex:1;position:relative;border-radius:4px;background:{{ r.bg }};border:{{ r.bd }};box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font:500 13.5px Geist,sans-serif;color:{{ r.c }}"><span style="display:flex;align-items:center;gap:10px"><span style="width:{{ r.ring }};height:{{ r.ring }};border-radius:50%;border:1.5px solid #80838A;box-sizing:border-box"></span>{{ r.t }}</span><span style="font:400 11px 'Geist Mono',monospace;color:#80838A">{{ r.m }}</span></div>
+</div>
+</sc-for>
+<div style="position:absolute;left:26px;right:26px;top:171px;height:0">
+<div style="position:absolute;left:0;top:-10px;height:20px;width:44px;border-radius:4px;background:#F2F2EF;color:#0F1012;font:600 11px/20px 'Geist Mono',monospace;text-align:center">19:40</div>
+<div style="position:absolute;left:52px;right:0;top:-0.75px;height:1.5px;background:#F2F2EF"></div>
+<div style="position:absolute;left:48px;top:-4px;width:8px;height:8px;border-radius:50%;background:#F2F2EF"></div>
+<div style="position:absolute;left:48px;top:-4px;width:8px;height:8px;border-radius:50%;background:#F2F2EF;animation:cPulse 2.6s cubic-bezier(.2,.6,.3,1) infinite"></div>
+</div>
+</div>
+<div style="grid-column:8 / span 5;display:flex;flex-direction:column">
+<sc-for list="{{ rowSpec }}" as="s" hint-placeholder-count="8"><div style="display:grid;grid-template-columns:128px minmax(0,1fr);gap:12px;padding:9px 0;border-top:1px solid #D3D1CA;font:400 12.5px/1.45 Geist,sans-serif"><span style="font:500 12px 'Geist Mono',monospace">{{ s.k }}</span><span style="color:#4D4D4A">{{ s.v }}</span></div></sc-for>
+</div>
+</section>
+
+<section style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;row-gap:20px">
+<div style="grid-column:span 12;display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0;font:600 32px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">CapacityMeter</h2><span style="font:500 13px 'Geist Mono',monospace;color:#4D4D4A">widgets/capacity/capacity_meter.dart</span></div>
+<div style="grid-column:span 7;padding:26px;border-radius:12px;background:#0F1012;color:#F2F2EF;display:flex;flex-direction:column;gap:26px">
+<sc-for list="{{ caps }}" as="c" hint-placeholder-count="3">
+<div style="display:flex;flex-direction:column;gap:7px">
+<span style="font:500 11px 'Geist Mono',monospace;color:#A9ABB0">{{ c.label }}</span>
+<div style="display:flex;justify-content:space-between;font:400 12px Geist,sans-serif;color:#A9ABB0"><span><span style="color:#F2F2EF;font-weight:500">{{ c.p }}</span> planned</span><span><span style="color:#F2F2EF;font-weight:500">{{ c.r }}</span> realistic</span></div>
+<div style="position:relative;height:8px;border-radius:2px;background:#1A1B1E">
+<sc-for list="{{ c.z }}" as="z" hint-placeholder-count="3"><div style="position:absolute;top:0;bottom:0;left:{{ z.l }};width:{{ z.w }};background:{{ z.bg }}"></div></sc-for>
+<sc-for list="{{ c.s }}" as="g" hint-placeholder-count="3"><div style="position:absolute;top:0;bottom:0;left:{{ g.l }};width:{{ g.w }};background:{{ g.bg }};box-shadow:inset -1px 0 0 #0F1012"></div></sc-for>
+<div style="position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:1px;background:#F2F2EF;left:{{ c.m }}"></div>
+</div>
+<span style="font:500 10px 'Geist Mono',monospace;letter-spacing:.04em;color:#80838A">{{ c.leg }}</span>
+</div>
+</sc-for>
+<div style="display:flex;align-items:center;gap:6px;padding:6px 6px 6px 14px;border-radius:12px;background:#1A1B1E"><div style="flex:1;font:400 12.5px/1.35 Geist,sans-serif">This is 50m more than fits before your wind-down.</div><span style="flex:none;height:44px;padding:0 14px;border-radius:999px;background:#F2F2EF;color:#0F1012;font:500 12.5px/44px Geist,sans-serif">Move Flutter</span><span style="flex:none;height:44px;padding:0 10px;color:#A9ABB0;font:500 12.5px/44px Geist,sans-serif">Keep anyway</span></div>
+<div style="display:flex;flex-direction:column;padding:4px 14px;border-radius:12px;background:#1A1B1E">
+<sc-for list="{{ capRows }}" as="cr" hint-placeholder-count="5"><div style="display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:7px 0;border-top:1px solid #2E3035"><span style="font:500 13px 'Geist Mono',monospace;color:#80838A">{{ cr.s }}</span><span style="display:flex;flex-direction:column;gap:1px"><span style="font:{{ cr.w }} 13px Geist,sans-serif">{{ cr.k }}</span><span style="font:400 11.5px Geist,sans-serif;color:#80838A">{{ cr.d }}</span></span><span style="font:{{ cr.w }} 13px 'Geist Mono',monospace">{{ cr.v }}</span></div></sc-for>
+</div>
+</div>
+<div style="grid-column:8 / span 5;display:flex;flex-direction:column">
+<sc-for list="{{ capSpec }}" as="s" hint-placeholder-count="9"><div style="display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;padding:9px 0;border-top:1px solid #D3D1CA;font:400 12.5px/1.45 Geist,sans-serif"><span style="font:500 12px 'Geist Mono',monospace">{{ s.k }}</span><span style="color:#4D4D4A">{{ s.v }}</span></div></sc-for>
+</div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0;font:600 32px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">PlannerOrb</h2><span style="font:500 13px 'Geist Mono',monospace;color:#4D4D4A">widgets/voice/planner_orb.dart (CustomPainter + Ticker)</span></div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px">
+<sc-for list="{{ orbs }}" as="o" hint-placeholder-count="8">
+<div style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:12px;background:#0F1012;color:#F2F2EF">
+<div style="display:flex;justify-content:center"><canvas ref="{{ o.ref }}" width="320" height="320" style="width:160px;height:160px"></canvas></div>
+<span style="font:500 11px 'Geist Mono',monospace;letter-spacing:.14em">{{ o.k }}</span>
+<span style="font:400 12.5px/1.45 Geist,sans-serif;color:#A9ABB0;min-height:54px">{{ o.d }}</span>
+<span style="font:400 11px/1.5 'Geist Mono',monospace;color:#80838A">{{ o.p }}</span>
+</div>
+</sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;font:400 13px/1.5 Geist,sans-serif;color:#4D4D4A">
+<p style="margin:0"><strong style="color:#121212;font-weight:600">Foreground only.</strong> The wake phrase “Hey Planner” is armed only while Today is the visible route and the app is resumed. On pause, route change, sheet or review, the recogniser stops. There is no background service.</p>
+<p style="margin:0"><strong style="color:#121212;font-weight:600">Amplitude.</strong> listening amp = clamp(RMS × 7) × 0.95 + 0.12 from the recorder’s amplitude stream at 30 Hz. Peaks over 0.62 spawn a ripple, at most one every 420ms.</p>
+<p style="margin:0"><strong style="color:#121212;font-weight:600">Core colour.</strong> The core is the category of the current task. During voice it switches to the category of what is being scheduled. With no current task it is warm white.</p>
+</div>
+</section>
+
+<section style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;row-gap:20px">
+<div style="grid-column:span 12;display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0;font:600 32px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">Controls</h2><span style="font:500 13px 'Geist Mono',monospace;color:#4D4D4A">widgets/controls/*.dart</span></div>
+<div style="grid-column:span 12;padding:26px;border-radius:12px;background:#0F1012;color:#F2F2EF;display:grid;grid-template-columns:150px repeat(7,minmax(0,1fr));gap:14px 12px;align-items:center">
+<span></span><sc-for list="{{ stateNames }}" as="n" hint-placeholder-count="7"><span style="font:500 11px 'Geist Mono',monospace;color:#A9ABB0">{{ n.t }}</span></sc-for>
+<sc-for list="{{ controls }}" as="ct" hint-placeholder-count="5">
+<span style="font:500 12.5px Geist,sans-serif">{{ ct.name }}</span>
+<sc-for list="{{ ct.states }}" as="st" hint-placeholder-count="7">
+<div style="display:flex;align-items:center;justify-content:flex-start;height:52px">
+<span style="position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:{{ st.h }};min-width:{{ st.w }};padding:0 {{ st.px }};border-radius:{{ st.r }};background:{{ st.bg }};color:{{ st.c }};border:{{ st.bd }};box-sizing:border-box;outline:{{ st.ol }};outline-offset:2px;transform:{{ st.tf }};opacity:{{ st.o }};font:500 12.5px Geist,sans-serif;overflow:hidden;white-space:nowrap">
+<sc-if value="{{ st.isSwitch }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:{{ st.th }};transform:{{ st.thx }}"></span></sc-if>
+<sc-if value="{{ st.load }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;left:0;right:0;bottom:0;height:2px;overflow:hidden"><span style="position:absolute;top:0;bottom:0;width:40%;background:{{ st.c }};animation:cBar 1.1s cubic-bezier(.4,0,.2,1) infinite"></span></span></sc-if>
+{{ st.t }}</span>
+</div>
+</sc-for>
+</sc-for>
+</div>
+<div style="grid-column:span 12;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;font:400 12.5px/1.5 Geist,sans-serif;color:#4D4D4A">
+<sc-for list="{{ ctlSpec }}" as="s" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:4px;padding-top:10px;border-top:1px solid #D3D1CA"><span style="font:600 14px 'Bricolage Grotesque',sans-serif;color:#121212">{{ s.k }}</span><span>{{ s.v }}</span></div></sc-for>
+</div>
+</section>
+
+<section style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;row-gap:20px">
+<div style="grid-column:span 12;display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0;font:600 32px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">WeekBoard</h2><span style="font:500 13px 'Geist Mono',monospace;color:#4D4D4A">widgets/plan/week_board.dart</span></div>
+<div style="grid-column:span 7;padding:26px;border-radius:12px;background:#0F1012;color:#F2F2EF;display:flex;gap:18px">
+<sc-for list="{{ wcols }}" as="w" hint-placeholder-count="5">
+<div style="display:flex;flex-direction:column;gap:8px;width:{{ w.w }}">
+<span style="font:500 10.5px 'Geist Mono',monospace;color:#A9ABB0;height:28px">{{ w.label }}</span>
+<div style="position:relative;height:280px;border-radius:6px;background:{{ w.bg }};box-shadow:{{ w.ring }}">
+<div style="position:absolute;top:8px;left:{{ w.bx }};right:{{ w.bx }};height:3px;border-radius:1px;background:#2E3035"><div style="position:absolute;left:0;top:0;bottom:0;width:{{ w.fill }};background:#F2F2EF"></div><div style="position:absolute;top:0;bottom:0;left:{{ w.ovL }};width:{{ w.ovW }};background:repeating-linear-gradient(135deg,#F2F2EF 0 1.5px,transparent 1.5px 3.5px)"></div></div>
+<sc-for list="{{ w.items }}" as="it" hint-placeholder-count="5"><div style="position:absolute;left:{{ it.x }};width:{{ it.w }};top:{{ it.y }};height:{{ it.h }};border-radius:{{ it.r }};background:{{ it.bg }};border:{{ it.bd }};box-sizing:border-box;padding:3px 6px;overflow:hidden;font:600 11px/1.2 'Bricolage Grotesque',sans-serif;color:{{ it.c }};white-space:nowrap">{{ it.t }}</div></sc-for>
+</div>
+<span style="font:400 11.5px/1.4 Geist,sans-serif;color:#80838A">{{ w.note }}</span>
+</div>
+</sc-for>
+</div>
+<div style="grid-column:8 / span 5;display:flex;flex-direction:column">
+<sc-for list="{{ weekSpec }}" as="s" hint-placeholder-count="10"><div style="display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;padding:9px 0;border-top:1px solid #D3D1CA;font:400 12.5px/1.45 Geist,sans-serif"><span style="font:500 12px 'Geist Mono',monospace">{{ s.k }}</span><span style="color:#4D4D4A">{{ s.v }}</span></div></sc-for>
+</div>
+</section>
+
+<section style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;row-gap:20px">
+<div style="grid-column:span 12"><h2 style="margin:0;font:600 32px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">Surfaces, feedback and status</h2></div>
+<div style="grid-column:span 4;display:flex;flex-direction:column;gap:12px;padding:22px;border-radius:12px;background:#0F1012;color:#F2F2EF">
+<span style="font:500 11px 'Geist Mono',monospace;color:#A9ABB0">SHEET (TaskSheet)</span>
+<div style="border-radius:24px 24px 0 0;background:#1A1B1E;padding:8px 18px 18px;display:flex;flex-direction:column;gap:12px"><div style="width:36px;height:4px;border-radius:2px;background:#2E3035;margin:0 auto"></div><div style="display:flex;justify-content:space-between;font:500 12px Geist,sans-serif;color:#A9ABB0"><span style="display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:2px;background:#D9331A"></span>Body</span><span>Close</span></div><span style="font:600 26px/1.08 'Bricolage Grotesque',sans-serif">What should we do with this?</span><span style="font:400 12.5px Geist,sans-serif;color:#A9ABB0">Exercise was planned for Wed 22:15 → 23:00.</span><div style="display:flex;justify-content:space-between;padding:14px 0 0;border-top:1px solid #2E3035;font:500 14px Geist,sans-serif"><span>Tomorrow</span><span style="font:400 12px 'Geist Mono',monospace;color:#A9ABB0">Thu 21:00</span></div></div>
+<span style="font:400 12px/1.45 Geist,sans-serif;color:#A9ABB0">Opens with Settle 460ms from 104%. Scrim fades to 52%. Drag down or tap the scrim to close. The focus trap starts on the title.</span>
+</div>
+<div style="grid-column:5 / span 4;display:flex;flex-direction:column;gap:12px;padding:22px;border-radius:12px;background:#0F1012;color:#F2F2EF">
+<span style="font:500 11px 'Geist Mono',monospace;color:#A9ABB0">NOTE (status strip)</span>
+<div style="display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 6px 6px 16px;border-radius:12px;background:#25272B"><span style="flex:1;font:400 13px/1.35 Geist,sans-serif">Study polity done early. 20 min back in your evening.</span><span style="font:600 13px Geist,sans-serif;text-decoration:underline;text-underline-offset:3px;padding:0 12px">Undo</span></div>
+<div style="display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 16px;border-radius:12px;background:#25272B"><span style="flex:1;font:400 13px/1.35 Geist,sans-serif">Cancelled. Nothing was changed.</span></div>
+<span style="font:400 12px/1.45 Geist,sans-serif;color:#A9ABB0">One at a time, 96px above the bottom. It rises 12px with Spring. 3.6s without an action, 5.2s with Undo. It never covers the nav. A screen reader announces it through the live region.</span>
+</div>
+<div style="grid-column:9 / span 4;display:flex;flex-direction:column;gap:12px;padding:22px;border-radius:12px;background:#0F1012;color:#F2F2EF">
+<span style="font:500 11px 'Geist Mono',monospace;color:#A9ABB0">SYNC STATUS</span>
+<sc-for list="{{ sync }}" as="y" hint-placeholder-count="5"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #2E3035"><span style="font:500 13px Geist,sans-serif">{{ y.k }}</span><span style="height:28px;padding:0 10px;border-radius:999px;background:{{ y.bg }};color:#A9ABB0;display:flex;align-items:center;gap:6px;font:500 11px 'Geist Mono',monospace">{{ y.v }}</span></div></sc-for>
+<span style="font:400 12px/1.45 Geist,sans-serif;color:#A9ABB0">Silence means synced. Planner is local-first, so offline is a normal state: nothing becomes read-only.</span>
+</div>
+</section>
+
+<section style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;row-gap:16px">
+<div style="grid-column:span 12"><h2 style="margin:0;font:600 32px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em">Empty states</h2></div>
+<sc-for list="{{ empties }}" as="e" hint-placeholder-count="8">
+<div style="grid-column:span 3;display:flex;flex-direction:column;gap:6px;padding:18px;border-radius:12px;background:#E8E7E2;min-height:120px">
+<span style="font:500 11px 'Geist Mono',monospace;color:#4D4D4A">{{ e.w }}</span>
+<span style="font:600 18px/1.2 'Bricolage Grotesque',sans-serif">{{ e.t }}</span>
+<span style="font:400 13px/1.45 Geist,sans-serif;color:#4D4D4A">{{ e.d }}</span>
+</div>
+</sc-for>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4300}}'>
+const TAU = Math.PI * 2;
+const C = { study:'#2450E6', build:'#00875A', body:'#D9331A', people:'#C92A76', self:'#F5B800', work:'#5A6B7D', rest:'#8C6A40' };
+const rgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+const mixHex = (a, b, t) => { const A = rgb(a), B = rgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+const tintD = c => mixHex('#0F1012', C[c], 0.2), tintL = c => mixHex('#F4F3EF', C[c], 0.16);
+function drawOrb(cv, p, t) {
+  if (!cv) return; const ctx = cv.getContext('2d'), S = cv.width; let c = S / 2; const cy = S / 2; ctx.clearRect(0, 0, S, S);
+  const core = p.core || [236, 233, 226], R = S * 0.2 * (1 + 0.06 * p.succ) * (1 - 0.08 * p.cancel); c += Math.sin(t * 38) * p.cancel * R * 0.09;
+  const css = (k, a) => a == null ? `rgb(${k[0] | 0},${k[1] | 0},${k[2] | 0})` : `rgba(${k[0] | 0},${k[1] | 0},${k[2] | 0},${a})`, mixc = (a, b, q) => a.map((v, i) => v + (b[i] - v) * q);
+  const halo = Math.min(1, p.amp) * (1 - p.succ) * (1 - p.deny);
+  if (halo > 0.03) { const g = ctx.createRadialGradient(c, cy, R * 0.9, c, cy, R * 2.2); g.addColorStop(0, css(core, 0.18 * halo)); g.addColorStop(1, css(core, 0)); ctx.fillStyle = g; ctx.fillRect(0, 0, S, S); }
+  for (const rp of p.ripples) { const age = (t - rp.t0) / 1.7; if (age < 0 || age > 1) continue; ctx.strokeStyle = css(core, (1 - age) * (1 - age) * 0.6 * rp.s); ctx.lineWidth = S * (0.006 * (1 - age) + 0.0015); ctx.beginPath(); ctx.arc(c, cy, R * (1.06 + age * 1.2), 0, TAU); ctx.stroke(); }
+  const M = 120, pts = [];
+  for (let i = 0; i < M; i++) { const th = i / M * TAU; let d = p.amp * (0.11 * Math.sin(3 * th + t * 2.3) + 0.07 * Math.sin(5 * th - t * 3.2) + 0.04 * Math.sin(9 * th + t * 5.1)) + 0.016 * Math.sin(2 * th + t * 0.9) * (0.35 + p.idle) + p.wob * 0.08 * Math.cos(2 * th) + p.proc * 0.03 * Math.pow(Math.max(0, Math.cos(th - t * 2.6)), 6); d *= (1 - p.succ * 0.85); const r = R * (1 + d); pts.push([c + r * Math.cos(th), cy + r * Math.sin(th)]); }
+  const path = () => { ctx.beginPath(); for (let i = 0; i <= M; i++) { const a = pts[i % M], b = pts[(i + 1) % M]; const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2; if (i === 0) ctx.moveTo(mx, my); else ctx.quadraticCurveTo(a[0], a[1], mx, my); } ctx.closePath(); };
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.65)'; ctx.shadowBlur = S * 0.06; ctx.shadowOffsetY = S * 0.025;
+  const g = ctx.createRadialGradient(c - R * 0.35, cy - R * 0.42, R * 0.04, c, cy, R * 1.15); g.addColorStop(0, '#3d3f44'); g.addColorStop(0.5, '#18191c'); g.addColorStop(1, '#050506'); path(); ctx.fillStyle = g; ctx.fill(); ctx.restore();
+  ctx.save(); path(); ctx.clip(); const lit = 1 - 0.7 * p.deny - 0.5 * p.cancel;
+  const spill = ctx.createRadialGradient(c, cy + R * 0.2, 0, c, cy + R * 0.2, R * 1.15); spill.addColorStop(0, css(core, 0.34 * lit)); spill.addColorStop(1, css(core, 0)); ctx.fillStyle = spill; ctx.fillRect(0, 0, S, S);
+  const breath = 0.5 + 0.5 * Math.sin(t * 1.5); let cr = R * (0.24 + 0.04 * breath * p.idle + p.amp * 0.2) * (1 - 0.5 * p.proc) * (1 - 0.3 * p.cancel); cr += (R * 0.95 - cr) * p.succ;
+  const corePath = () => { ctx.beginPath(); for (let i = 0; i <= 64; i++) { const th = i / 64 * TAU; const dd = 1 + p.amp * (0.16 * Math.sin(2 * th - t * 3) + 0.09 * Math.sin(4 * th + t * 4.2)) * (1 - p.succ); const x = c + cr * dd * Math.cos(th), y = cy + cr * dd * Math.sin(th); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); };
+  ctx.save();
+  if (p.deny > 0.5) { corePath(); ctx.strokeStyle = css(mixc(core, [120, 122, 128], 0.5), 0.9); ctx.lineWidth = S * 0.012; ctx.stroke(); ctx.beginPath(); ctx.moveTo(c - cr * 0.8, cy + cr * 0.8); ctx.lineTo(c + cr * 0.8, cy - cr * 0.8); ctx.stroke(); }
+  else { ctx.shadowColor = css(core, 0.95 * lit); ctx.shadowBlur = R * 0.55 * lit; const cg = ctx.createRadialGradient(c - cr * 0.3, cy - cr * 0.35, 0, c, cy, cr * 1.15); cg.addColorStop(0, css(mixc(core, [255, 255, 255], 0.5))); cg.addColorStop(0.45, css(core)); cg.addColorStop(1, css(mixc(core, [0, 0, 0], 0.22))); ctx.globalAlpha = 0.35 + 0.65 * lit; ctx.fillStyle = cg; corePath(); ctx.fill(); ctx.globalAlpha = 1; }
+  if (p.proc > 0.02) for (let k = 0; k < 3; k++) { const a = t * 2.8 + k * TAU / 3, rr = R * 0.46; ctx.beginPath(); ctx.arc(c + Math.cos(a) * rr, cy + Math.sin(a) * rr, R * 0.085 * p.proc, 0, TAU); ctx.fillStyle = css(mixc(core, [255, 255, 255], 0.2), p.proc); ctx.fill(); }
+  ctx.restore();
+  const fr = ctx.createRadialGradient(c, cy, R * 0.72, c, cy, R * 1.1); fr.addColorStop(0, 'rgba(255,255,255,0)'); fr.addColorStop(1, 'rgba(255,255,255,0.14)'); ctx.fillStyle = fr; ctx.fillRect(0, 0, S, S);
+  ctx.save(); ctx.translate(c - R * 0.34, cy - R * 0.5); ctx.rotate(-0.5); ctx.scale(1, 0.55); const sg = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 0.44); sg.addColorStop(0, 'rgba(255,255,255,0.55)'); sg.addColorStop(0.45, 'rgba(255,255,255,0.12)'); sg.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(0, 0, R * 0.44, 0, TAU); ctx.fill(); ctx.restore(); ctx.restore();
+  const rg = ctx.createLinearGradient(c - R, cy - R, c + R, cy + R); rg.addColorStop(0, 'rgba(255,255,255,.4)'); rg.addColorStop(0.5, 'rgba(255,255,255,.05)'); rg.addColorStop(1, 'rgba(255,255,255,.16)'); path(); ctx.strokeStyle = rg; ctx.lineWidth = S * 0.003; ctx.stroke();
+  if (p.succ > 0.35) { const q = Math.min(1, (p.succ - 0.35) / 0.55); const P = [[-0.26, 0.01], [-0.07, 0.19], [0.27, -0.17]].map(([x, y]) => [c + x * R, cy + y * R]); const l1 = Math.hypot(P[1][0] - P[0][0], P[1][1] - P[0][1]), l2 = Math.hypot(P[2][0] - P[1][0], P[2][1] - P[1][1]); let L = q * (l1 + l2); ctx.beginPath(); ctx.moveTo(P[0][0], P[0][1]); if (L <= l1) ctx.lineTo(P[0][0] + (P[1][0] - P[0][0]) * L / l1, P[0][1] + (P[1][1] - P[0][1]) * L / l1); else { ctx.lineTo(P[1][0], P[1][1]); L -= l1; ctx.lineTo(P[1][0] + (P[2][0] - P[1][0]) * L / l2, P[1][1] + (P[2][1] - P[1][1]) * L / l2); } ctx.strokeStyle = '#ffffff'; ctx.lineWidth = S * 0.022; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(); }
+}
+class Component extends DCLogic {
+  orbRefs = Array.from({ length:8 }, () => React.createRef());
+  componentDidMount() {
+    const rm = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const loop = ts => {
+      const t = rm ? 1.2 : ts / 1000, spk = 0.4 + 0.6 * Math.abs(Math.sin(t * 9.3) * Math.sin(t * 2.7 + 1)), blue = rgb(C.study), red = rgb(C.body);
+      const base = { amp:0.03, idle:1, proc:0, succ:0, wob:0, cancel:0, deny:0, ripples:[], core:null };
+      const st = [
+        { ...base, core:blue }, { ...base, amp:0.16, core:blue }, { ...base, amp:0.45, idle:0, wob:Math.sin(t * 5) * 0.4 * Math.max(0, 1 - (t % 3)), core:blue },
+        { ...base, amp:spk, idle:0, ripples:rm ? [] : [{ t0:t - (t % 0.9), s:0.8 }, { t0:t - (t % 0.9) - 0.9, s:0.8 }], core:blue }, { ...base, amp:0.05, idle:0, proc:1, core:blue },
+        { ...base, amp:0, idle:0, succ:rm ? 1 : Math.min(1, (t % 3) / 1.2), core:red }, { ...base, amp:0.02, idle:0, cancel:rm ? 0.4 : Math.max(0, 1 - (t % 2.4) / 1.2) }, { ...base, amp:0.02, idle:0.4, deny:1 }];
+      this.orbRefs.forEach((r, i) => drawOrb(r.current, st[i], t));
+      if (!rm) this.raf = requestAnimationFrame(loop);
+    };
+    this.raf = requestAnimationFrame(loop);
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+  renderVals() {
+    const B = (o) => ({ h:'52px', op:'1', under:'transparent', bg:tintD('study'), ring:'none', outline:'none', tf:'none', align:'center', pad:'0 0 0 14px', dashO:'0', elapsed:'0%', ovH:'0px', ovC:'transparent', sweep:'0%', sweepC:'transparent', shimmer:false, txO:'1', sqW:'8px', sq:C.study, title:'Study polity', tc:'#F2F2EF', deco:'none', chip:'', cc:'#A9ABB0', meta:'2h', sc:'#80838A', kb:'#80838A', kbg:'transparent', kO:'1', tick:'0', note:'', ...o });
+    const full = { bg:C.study, sqW:'0px', tc:'#FFFFFF', sc:'rgba(255,255,255,.78)', cc:'#FFFFFF', kb:'#FFFFFF' };
+    const blocks = [
+      B({ label:'UPCOMING', note:'Tint of the category, title in tx. Default for anything later than next.' }),
+      B({ label:'NEXT', ...full, chip:'NEXT', note:'Full colour. Only one task is next.' }),
+      B({ label:'CURRENT', ...full, h:'72px', align:'flex-start', pad:'11px 0 0 14px', chip:'NOW', meta:'20:00 → 22:00', elapsed:'42%', note:'Elapsed shade grows linearly each second. The now-line crosses it.' }),
+      B({ label:'HOVER (desktop)', bg:mixHex(tintD('study'), '#ffffff', 0.05), note:'+5% lift, grab cursor, check ring to t2.' }),
+      B({ label:'PRESSED', tf:'scale(.98)', note:'Snap to .98 on press. Long press (350ms) lifts for drag.' }),
+      B({ label:'FOCUSED', outline:'2px solid #F2F2EF', note:'Keyboard or switch access. Enter opens, Space completes.' }),
+      B({ label:'DRAGGING', tf:'scale(1.03)', ring:'inset 0 0 0 1.5px #F2F2EF', note:'Lifted 1.03 with a tx ring. No shadow. The ghost shows the landing slot.' }),
+      B({ label:'STAGED (placement)', ring:`inset 0 0 0 1.5px ${C.study}`, pad:'0 0 0 14px', h:'44px', note:'Voice or manual scheduling: 44px, inset 16%, then springs to its slot.' }),
+      B({ label:'COMPLETING', under:tintD('study'), sweep:'62%', sweepC:C.study, kb:C.study, note:'Swipe past 70px or tap the check. Sweep 380ms Snap, tick draws 300ms.' }),
+      B({ label:'COMPLETED', bg:'#0F1012', ring:'inset 0 0 0 1px #2E3035', tc:'#80838A', deco:'line-through', sq:mixHex('#0F1012', C.study, 0.45), kb:'#A9ABB0', kbg:'#A9ABB0', tick:'1', note:'Goes quiet so the eye moves on. Tapping the check again undoes it.' }),
+      B({ label:'MISSED', bg:'transparent', dashO:'1', tc:'#A9ABB0', chip:'MISSED', note:'No red. A dashed outline and one calm label. Tap opens the decision sheet.' }),
+      B({ label:'OVERFLOW', bg:tintD('build'), sq:C.build, title:'Learn Flutter', meta:'1h', ovH:'26px', ovC:'rgba(0,135,90,.6)', note:'The part past realistic capacity is striped. Shown until the user decides.' }),
+      B({ label:'LOADING', shimmer:true, txO:'0', kO:'0', note:'Only on first open while the local DB warms (<150ms usually). Shape-true skeleton.' }),
+      B({ label:'ERROR', meta:'Not saved, tap to retry', sc:'#A9ABB0', ring:'inset 0 0 0 1px #80838A', note:'Local write failed (rare). The block stays where it is. Retry is inline.' }),
+      B({ label:'DISABLED', op:'0.5', kO:'0', note:'Past and locked (for example during review). Not interactive, still readable.' })
+    ];
+    const LB = (label, o) => ({ label, bg:tintL('study'), ring:'none', sq:C.study, sqW:'8px', title:'Study polity', tc:'#121212', deco:'none', meta:'2h', sc:'#686863', ...o });
+    const lightBlocks = [LB('LIGHT: UPCOMING'), LB('LIGHT: CURRENT', { bg:C.study, sqW:'0px', tc:'#fff', sc:'rgba(255,255,255,.8)' }), LB('LIGHT: SELF (dark ink)', { bg:C.self, sqW:'0px', tc:'#1A1404', sc:'rgba(26,20,4,.75)', title:'Plan the week', meta:'20m' }), LB('LIGHT: COMPLETED', { bg:'#F4F3EF', ring:'inset 0 0 0 1px #D3D1CA', tc:'#686863', deco:'line-through', sq:mixHex('#F4F3EF', C.study, 0.45) })];
+    const S = (k, v) => ({ k, v });
+    const taskSpec = [S('Height', 'max(44, minutes × 1.1). Blocks 60px or taller top-align and show the range. Shorter ones centre and show the duration.'), S('Shape', 'Radius 4, no border. Title Bricolage 600 15, meta Geist Mono 12. Category square 8 × 8 radius 2 on tints only.'), S('Colour', 'Tint 20% (dark) or 16% (light). Full colour for current and next. Ink: white, or #1A1404 on Self.'), S('Check', '44 × 44 target, 22px ring 1.5. Done: filled t2 with a bg tick.'), S('Swipe', 'Starts after 8px horizontal. Follows 1:1 to 80px, then 0.35×, capped at 140. Past 70px it completes. Returns with a 560ms Spring.'), S('Tap', 'Opens TaskSheet. On a missed task it opens the decision sheet.'), S('Done early', 'State commits at once. The block shrinks to the actual end with Spring and the note says how many minutes came back.'), S('Motion', 'top and height 640ms Spring (reflow). Colour 400ms Settle. Enter from staged: translateY(−10) scale(.92), then 360ms later it is placed.'), S('Semantics', '“Study polity, 20:00 to 22:00, in progress. Double-tap for details. Swipe right to complete.” Custom actions: Complete, Reschedule.'), S('Flutter', 'TaskBlock(task, state, onOpen, onComplete). AnimatedPositioned inside a Stack. CustomPaint for the stripes.')];
+    const tD = c => mixHex('#0F1012', C[c], 0.26);
+    const rows = [
+      { time:'07:00', h:'30px', pt:'8px', bg:'transparent', bd:'none', c:'#A9ABB0', t:'Wake', m:'', ring:'7px' },
+      { time:'07:00', h:'32px', pt:'9px', bg:'repeating-linear-gradient(135deg,#2E3035 0 1px,transparent 1px 7px)', bd:'none', c:'#A9ABB0', t:'Getting ready', m:'1h, protected', ring:'0px' },
+      { time:'08:00', h:'58px', pt:'10px', bg:tD('work'), bd:'none', c:'#F2F2EF', t:'Office', m:'08:00 → 19:00  11h', ring:'0px' },
+      { time:'19:00', h:'66px', pt:'10px', bg:tD('rest'), bd:'none', c:'#F2F2EF', t:'Dinner', m:'1h', ring:'0px' },
+      { time:'', h:'22px', pt:'0', bg:'transparent', bd:'none', c:'#80838A', t:'Break 15m, dashed hairline', m:'', ring:'0px' },
+      { time:'20:00', h:'64px', pt:'10px', bg:'transparent', bd:'1px dashed #2E3035', c:'#80838A', t:'', m:'Open 3h 30m', ring:'0px' },
+      { time:'23:30', h:'33px', pt:'9px', bg:'repeating-linear-gradient(135deg,#2E3035 0 1px,transparent 1px 7px)', bd:'none', c:'#A9ABB0', t:'Wind-down', m:'30m, protected', ring:'0px' }
+    ];
+    const rowSpec = [S('TimelineMarker', 'Wake and Sleep. 30px, 7px ring 1.5 t3, Geist 500 13 t2.'), S('CommitmentBand', 'Fixed. Solid tint 26% (dark) or 20% (light). Over 90 min it compresses to 58px, and the meta shows range and length.'), S('ProtectedBand', 'Getting ready, Wind-down. 135° hatch, 1px ln at a 7px pitch. Counted as protected, never scheduled into unless the user keeps an overflow.'), S('OpenWindow', '1px dashed ln, radius 4. It carries the empty state when it is the day’s main free window and at least 110px tall.'), S('BreakRow', 'Auto 15 min after any block of 2h or more. 22px, dashed line with a mono label.'), S('NowIndicator', 'Pill 44 × 20 tx/bg, Mono 600 11. Line 1.5 tx. The dot pulses 1 → 3.4 over 2.6s and pauses during voice, drag and sheets.'), S('Now position', 'y = row.y + (now − start) / duration × row.height. Linear 1s. Auto-scroll keeps it 150px from the top on open.'), S('Past rows', 'Opacity 0.5. Past tasks keep full opacity: done ones go quiet, missed ones are dashed.')];
+    const pc = (m, sc) => (m / sc * 100).toFixed(2) + '%';
+    const capOf = (label, planned, segs, avail, prot, brk, buf) => { const real = avail - prot - brk - buf, sc = Math.max(avail, planned); let acc = 0; const s = [];
+      segs.forEach(([cat, m]) => { const a = acc, b = acc + m; acc = b; if (a < real) s.push({ l:pc(a, sc), w:pc(Math.min(b, real) - a, sc), bg:C[cat] }); if (b > real) s.push({ l:pc(Math.max(a, real), sc), w:pc(b - Math.max(a, real), sc), bg:`repeating-linear-gradient(135deg,${C[cat]} 0 2px,transparent 2px 5px)` }); });
+      const z = [{ l:pc(real, sc), w:pc(brk, sc), bg:'#25272B' }, { l:pc(real + brk, sc), w:pc(buf, sc), bg:'repeating-linear-gradient(90deg,#80838A 0 1px,transparent 1px 3px)' }, { l:pc(real + brk + buf, sc), w:pc(prot, sc), bg:'repeating-linear-gradient(135deg,#80838A 0 1px,transparent 1px 4px)' }];
+      const d = m => { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}h ${r}m` : h ? `${h}h` : `${r}m`; };
+      return { label, p:d(planned), r:d(real), s, z, m:pc(real, sc), leg:`AVAILABLE ${d(avail)}   PROTECTED ${d(prot)}   BREAKS ${d(brk)}   BUFFER ${d(buf)}` }; };
+    const caps = [capOf('COMFORTABLE', 105, [['study', 45], ['people', 30], ['self', 30]], 300, 90, 0, 20), capOf('FULL, NOT OVER', 175, [['study', 120], ['body', 55]], 300, 90, 15, 20), capOf('OVER BY 50m', 225, [['study', 120], ['body', 45], ['build', 60]], 300, 90, 15, 20)];
+    const capRows = [['', 'Available', '5h', 'Outside fixed commitments', '400'], ['−', 'Protected', '1h 30m', 'Getting ready, Wind-down', '400'], ['−', 'Breaks', '15m', '15 minutes after any block of 2 hours or more', '400'], ['−', 'Buffer', '20m', 'Room for things that run over', '400'], ['=', 'Realistic', '2h 55m', 'What Planner will schedule into', '600']].map(([s, k, v, d, w]) => ({ s, k, v, d, w }));
+    const capSpec = [S('Formula', 'realistic = available − protected − breaks − buffer. buffer = min(20, available − protected − breaks). Weekend days are capped at 6h until two weeks of history exist, then the cap becomes the 75th-percentile finished minutes.'), S('Today', 'Counts from now: only remaining minutes. Done tasks drop out.'), S('Bar', '8px, radius 2, track s1. Planned segments in category colour, left to right in time order. Past realistic they turn to stripes. Right of realistic: breaks (s2), buffer (dotted), protected (hatch).'), S('Marker', '2px tx, extends 4px above and below. Moves with Settle 620ms.'), S('Legend', 'Mono 500 10, labels t3, values t2. The whole meter is one button: tap to expand the equation.'), S('Over row', 'Shows when over > 15m. Calm s1 panel. The copy explains, it never warns. Move goes to the next evening slot, and the block flies out. Keep anyway keeps the stripes.'), S('New users', 'Copy says “more than fits before your wind-down”. After 14 days of history: “more than you usually finish in an evening”.'), S('Semantics', '“3 hours 45 planned of 2 hours 55 realistic, 50 minutes over. Button, shows how this is worked out.”'), S('Flutter', 'CapacityMeter(capacity) with TweenAnimationBuilder per segment. Capacity is a pure function in domain/capacity.dart.')];
+    const orbs = [
+      ['IDLE', 'Breathes on Drift. Core takes the current task’s category.', 'amp .03  idle 1'], ['HOVER', 'Desktop and web. Slightly livelier to invite a click.', 'amp .16  idle 1'], ['WAKE', 'Tap or “Hey Planner”. Elastic wobble, rises from the nav to the upper centre.', 'amp .45  wobV +9  760ms rise'],
+      ['LISTENING', 'Surface and core follow mic amplitude. Peaks send ripples.', 'amp = RMS×7×.95+.12'], ['PROCESSING', 'Surface stills, three droplets orbit. The transcript highlights what was understood.', 'amp .05  proc 1'], ['SUCCESS', 'Core fills with the scheduled category, a tick draws, then it docks.', 'succ → 1 (k 5)'],
+      ['CANCELLED', 'Tap outside during wake, listen or process. A small “no” shake, the core dims, nothing changes.', 'cancel 1 → 0 (k 3.2)'], ['MIC DENIED', 'Hollow core with a slash. Offers “Allow microphone” and “Type instead”.', 'deny 1  amp .02']
+    ].map(([k, d, p], i) => ({ k, d, p, ref:this.orbRefs[i] }));
+    const stateNames = ['Default', 'Hover', 'Pressed', 'Focused', 'Loading', 'Success', 'Disabled'].map(t => ({ t }));
+    const ctl = (name, base) => ({ name, states:[{}, { hov:1 }, { tf:'scale(.97)' }, { ol:'2px solid #F2F2EF' }, { load:true }, { ok:1 }, { o:'0.4' }].map(v => {
+      const o = { h:base.h, w:base.w || '0px', px:base.px, r:base.r, bg:base.bg, c:base.c, bd:base.bd || 'none', ol:'none', tf:'none', o:'1', t:base.t, load:false, isSwitch:!!base.sw, th:base.th || 'transparent', thx:base.thx || 'none' };
+      if (v.hov) o.bg = base.hov || o.bg; if (v.tf) o.tf = v.tf; if (v.ol) o.ol = v.ol; if (v.load) { o.load = true; o.t = base.loadT || base.t; } if (v.ok) { o.t = base.okT || base.t; if (base.okBg) o.bg = base.okBg; if (base.okThx) o.thx = base.okThx; if (base.okTh) o.th = base.okTh; } if (v.o) o.o = v.o; return o; }) });
+    const controls = [
+      ctl('Primary pill', { h:'44px', px:'16px', r:'999px', bg:'#F2F2EF', c:'#0F1012', t:'Schedule', hov:'#FFFFFF', loadT:'Scheduling', okT:'Scheduled' }),
+      ctl('Secondary pill', { h:'44px', px:'16px', r:'999px', bg:'transparent', c:'#F2F2EF', bd:'1px solid #2E3035', t:'Restore', hov:'#1A1B1E', loadT:'Restoring', okT:'Restored' }),
+      ctl('Choice chip', { h:'36px', px:'12px', r:'999px', bg:'transparent', c:'#A9ABB0', bd:'1px solid #2E3035', t:'45m', hov:'#1A1B1E', okBg:'#F2F2EF', okT:'45m' }),
+      ctl('Switch', { h:'24px', w:'40px', px:'0px', r:'999px', bg:'#25272B', c:'#0F1012', t:'', hov:'#2E3035', sw:true, th:'#A9ABB0', okBg:'#F2F2EF', okThx:'translateX(16px)', okTh:'#0F1012' }),
+      ctl('Icon button', { h:'44px', w:'44px', px:'0px', r:'999px', bg:'transparent', c:'#F2F2EF', t:'+', hov:'#1A1B1E' })
+    ];
+    const ctlSpec = [S('Loading', 'A 2px bar sweeps inside the control. The label changes to the -ing verb. The control stays put and no spinner is shown.'), S('Success', 'The label changes to its past tense for 1.2s, then the control returns or leaves. Chips and switches: the success state is simply “selected” or “on”.'), S('Error', 'Inline text under the control in t2, never red fills: “Couldn’t reach Google. Try again.” Retry keeps its position.'), S('Segmented', 'Thumb s2 on an s1 track, slides with Spring 460ms. Labels change colour 200ms. aria-pressed, arrow keys move the selection.')];
+    const L2 = (x, w, y, h, bg, r, t, c, bd) => ({ x, w, y, h, bg, r, t:t || '', c:c || '#F2F2EF', bd:bd || 'none' });
+    const wcols = [
+      { label:'COLLAPSED', w:'26px', bg:'transparent', ring:'none', bx:'4px', fill:'60%', ovL:'0%', ovW:'0%', note:'Transit lines, 4px, centred.', items:[L2('0px', '26px', '40px', '54px', mixHex('#0F1012', C.work, 0.3), '2px'), L2('11px', '4px', '120px', '46px', mixHex('#0F1012', C.study, 0.55), '2px'), L2('11px', '4px', '172px', '20px', C.people, '2px'), L2('0px', '26px', '200px', '18px', mixHex('#0F1012', C.rest, 0.3), '2px')] },
+      { label:'EXPANDED', w:'160px', bg:'#1A1B1E', ring:'none', bx:'6px', fill:'70%', ovL:'0%', ovW:'0%', note:'Blocks with titles. Free gaps of 40m or more are labelled.', items:[L2('0px', '160px', '40px', '54px', mixHex('#0F1012', C.work, 0.3), '2px', 'Office', '#A9ABB0'), L2('3px', '154px', '120px', '46px', mixHex('#0F1012', C.study, 0.28), '3px', 'Revise polity notes'), L2('3px', '154px', '172px', '20px', C.people, '3px', 'Call family', '#fff'), L2('3px', '154px', '200px', '60px', 'transparent', '3px', '2h free', '#80838A', '1px dashed #2E3035')] },
+      { label:'OVERLOADED', w:'26px', bg:'transparent', ring:'none', bx:'4px', fill:'78%', ovL:'78%', ovW:'22%', note:'Load bar stripes past realistic.', items:[L2('11px', '4px', '60px', '28px', mixHex('#0F1012', C.body, 0.55), '2px'), L2('11px', '4px', '96px', '56px', mixHex('#0F1012', C.study, 0.55), '2px'), L2('11px', '4px', '160px', '84px', mixHex('#0F1012', C.build, 0.55), '2px'), L2('11px', '4px', '250px', '24px', mixHex('#0F1012', C.build, 0.55), '2px')] },
+      { label:'PAST, DONE', w:'26px', bg:'transparent', ring:'none', bx:'4px', fill:'100%', ovL:'0%', ovW:'0%', note:'Done saturates: the week fills in.', items:[L2('11px', '4px', '120px', '44px', C.study, '2px'), L2('11px', '4px', '170px', '18px', C.self, '2px'), L2('11px', '4px', '196px', '20px', 'transparent', '2px', '', '', '1px dashed #80838A')] },
+      { label:'DROP TARGET', w:'26px', bg:'#1A1B1E', ring:'inset 0 0 0 1px #80838A', bx:'4px', fill:'50%', ovL:'0%', ovW:'0%', note:'Highlight plus the ghost slot while dragging.', items:[L2('3px', '20px', '130px', '40px', 'transparent', '3px', '', '', `1.5px dashed ${C.study}`)] }
+    ];
+    const weekSpec = [S('Zoom levels', 'Plan’s Today, Tomorrow and Week are one board at three zooms. Week: collapsed 26px, gap 4. Day: slivers 12px, gap 3. The selected column takes the rest. Widths animate with Spring 560ms, so lines grow into blocks.'), S('Scale', '06:00 → 24:00 in 432px (0.4 px/min). Axis labels every 3h. Header 44px: date, load bar, capacity text when expanded.'), S('Colour', 'Future: tint 55% as a line, 28% as a block. Done, current and next: full. Missed: dashed t3. Commitments: 30% tint bands. Protected: hatch.'), S('Drag', 'Pick up after 6px (touch: 250ms long press). The block follows 1:1. The target column highlights and the ghost shows the snapped slot (15 min). Neighbours reflow live. Drop: Spring to the slot, a scan line runs down both columns (700ms), and the load bars update.'), S('Reflow', 'Tasks that overlap the drop slide later into the next free time, never into fixed or protected time. Done tasks never move. If a day overflows, its bar stripes and the calm row appears.'), S('Deadlines', '2px tx rule across the day at the due time. Label when expanded.'), S('Now', '1.5px tx line with a dot, in the today column only.'), S('Keyboard', 'Arrows move focus, Enter opens. Alt + arrow up/down moves a block 15 min, Alt + left/right moves it a day. Every move is announced.'), S('Semantics', 'Column: “Saturday 3 October. 7 hours 15 planned of 6 hours realistic. Over by 1 hour 15.” Block: title, day, range, status. Custom actions Move earlier, Move later, Move to…'), S('Flutter', 'WeekBoard(days, selected, mode). One Stack. Every mark is an AnimatedPositioned keyed by id, so moves and zooms are the same animation.')];
+    const sync = [['Synced', '(nothing shown)', 'transparent'], ['Backing up', 'SYNCING', '#1A1B1E'], ['Offline', 'LOCAL', '#1A1B1E'], ['Conflict', 'NEEDS A DECISION', '#1A1B1E'], ['Not connected', '(nothing shown)', 'transparent']].map(([k, v, bg]) => ({ k, v, bg }));
+    const empties = [
+      ['Today, no tasks', 'No plans yet.', 'Tell Planner what you want to accomplish. Tap the orb, or say “Hey Planner”.'], ['Plan, week', 'Your week is clear.', 'Tell Planner what you want to accomplish, and it will find the time.'], ['Unscheduled', 'Nothing waiting.', 'Tasks without a time land here.'], ['Upcoming', 'Nothing upcoming.', 'Your week is clear.'],
+      ['Progress, first days', 'Your first week has started.', 'The ribbon fills in as the week happens.'], ['Heatmap', 'Your rhythm appears here', 'after a few days of use.'], ['Dial, day done', 'All done', 'Nothing else today. The evening is yours.'], ['Review, early', 'The weekly review opens on Sunday evening.', 'Until then, Progress shows the week so far.']
+    ].map(([w, t, d]) => ({ w, t, d }));
+    return { blocks, lightBlocks, taskSpec, rows, rowSpec, caps, capRows, capSpec, orbs, stateNames, controls, ctlSpec, wcols, weekSpec, sync, empties };
+  }
+}
+</script>
+</body>
+</html>
