@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/state/actions.dart';
 import '../../app/state/clock.dart';
 import '../../app/state/derived.dart';
-import '../../app/state/note.dart';
 import '../../app/state/ui_state.dart';
 import '../../app/theme/planner_theme.dart';
 import '../../domain/routine.dart';
@@ -13,6 +12,7 @@ import '../../domain/time.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/icons.dart';
 import '../../widgets/planner_sheet.dart';
+import '../voice/voice_controller.dart';
 import 'task_form.dart';
 
 /// Default suggestions until history exists.
@@ -143,7 +143,8 @@ class _TaskSheetState extends ConsumerState<TaskSheet> {
             color: c.t2,
             onTap: () {
               act.closeSheet();
-              ref.read(noteProvider.notifier).say('Voice arrives in milestone 7.');
+              Future.delayed(const Duration(milliseconds: 200),
+                  ref.read(voiceControllerProvider.notifier).tapOrb);
             },
           ),
           const SheetClose(),

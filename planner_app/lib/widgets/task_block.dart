@@ -134,7 +134,14 @@ class _TaskBlockState extends State<TaskBlock> with SingleTickerProviderStateMix
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => LayoutBuilder(
+        // Tall vs short is decided by the height actually laid out, so a
+        // block growing during placement never overflows mid-animation.
+        builder: (context, box) => _build(
+            context, box.maxHeight.isFinite ? box.maxHeight >= 60 : widget.look.tall),
+      );
+
+  Widget _build(BuildContext context, bool tall) {
     final c = PlannerColors.of(context);
     final l = widget.look;
     final t = l.task;
@@ -240,14 +247,14 @@ class _TaskBlockState extends State<TaskBlock> with SingleTickerProviderStateMix
             behavior: HitTestBehavior.opaque,
             onTap: widget.onOpen,
             child: Padding(
-              padding: EdgeInsets.only(left: 14, top: l.tall ? 11 : 0),
+              padding: EdgeInsets.only(left: 14, top: tall ? 11 : 0),
               child: Row(
-                crossAxisAlignment: l.tall ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+                crossAxisAlignment: tall ? CrossAxisAlignment.start : CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Column(
                       mainAxisAlignment:
-                          l.tall ? MainAxisAlignment.start : MainAxisAlignment.center,
+                          tall ? MainAxisAlignment.start : MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(children: [
@@ -279,7 +286,7 @@ class _TaskBlockState extends State<TaskBlock> with SingleTickerProviderStateMix
                                     size: 9.5, tracking: 0.08, color: full ? cat.ink : c.t2)),
                           ],
                         ]),
-                        if (l.tall) ...[
+                        if (tall) ...[
                           const SizedBox(height: 3),
                           Text('${fmt(t.start!)} → ${fmt(t.end!)}',
                               style: PlannerType.time(size: 12, color: subC)),
@@ -287,7 +294,7 @@ class _TaskBlockState extends State<TaskBlock> with SingleTickerProviderStateMix
                       ],
                     ),
                   ),
-                  if (!l.tall)
+                  if (!tall)
                     Text(dur(t.end! - t.start!), style: PlannerType.time(size: 12, color: subC)),
                 ],
               ),
@@ -300,7 +307,7 @@ class _TaskBlockState extends State<TaskBlock> with SingleTickerProviderStateMix
         right: 2,
         top: 0,
         width: 44,
-        height: l.tall ? 48 : 44,
+        height: tall ? 48 : 44,
         child: IgnorePointer(
           ignoring: !l.canCheck,
           child: AnimatedOpacity(

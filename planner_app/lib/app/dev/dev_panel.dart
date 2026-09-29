@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/settings.dart';
+import '../../domain/intents.dart';
+import '../../features/voice/speech.dart';
 import '../../widgets/controls.dart';
 import '../state/actions.dart';
 import '../state/clock.dart';
@@ -11,6 +13,7 @@ import '../state/staging.dart';
 import '../state/store.dart';
 import '../state/ui_state.dart';
 import '../theme/planner_theme.dart';
+import '../../features/voice/voice_controller.dart';
 import 'foundations_page.dart';
 import 'scenarios.dart';
 
@@ -21,6 +24,7 @@ Future<void> loadScenario(WidgetRef ref, Scenario k) async {
   ref.read(stagingProvider.notifier).reset();
   ref.read(noteProvider.notifier).dismiss();
   ref.read(sheetProvider.notifier).close();
+  ref.read(voiceControllerProvider.notifier).close();
   final settings = ref.read(settingsProvider);
   await ref.read(plannerStoreProvider.notifier).replaceAll(s.data.copyWith(settings: settings));
   ref.read(clockProvider.notifier).pin(s.clock);
@@ -49,6 +53,7 @@ class DevPanel extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final store = ref.read(plannerStoreProvider.notifier);
     final online = ref.watch(onlineProvider);
+    final voice = ref.watch(voiceDebugProvider);
     Widget label(String t) => Padding(
           padding: const EdgeInsets.only(top: 16, bottom: 6),
           child: Text(t, style: PlannerType.stateLabel(size: 10, tracking: 0.1, color: c.t3)),
@@ -79,6 +84,39 @@ class DevPanel extends ConsumerWidget {
             height: 36,
             onTap: () => clk.setSpeed(clk.speed > 1 ? 1 : 60)),
         SecondaryPill(label: 'Real time', height: 36, onTap: clk.useRealTime),
+      ]),
+      label('DEMO VOICE (TAP THE ORB)'),
+      for (final (i, line) in demoUtterances.indexed)
+        Pressable(
+          onTap: () => ref.read(voiceDebugProvider.notifier).set((v) => v.copyWith(line: i)),
+          label: line,
+          radius: 8,
+          pressedScale: 0.99,
+          excludeChildSemantics: true,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            margin: const EdgeInsets.only(bottom: 4),
+            decoration: BoxDecoration(
+              color: voice.line == i ? c.s2 : null,
+              border: Border.all(color: c.ln),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            alignment: Alignment.centerLeft,
+            child: Text(line, style: PlannerType.ui(12.5, weight: 400, color: c.tx)),
+          ),
+        ),
+      Wrap(spacing: 8, runSpacing: 8, children: [
+        SecondaryPill(
+          label: voice.live ? 'Voice: live mic' : 'Voice: demo',
+          height: 36,
+          onTap: () => ref.read(voiceDebugProvider.notifier).set((v) => v.copyWith(live: !v.live)),
+        ),
+        SecondaryPill(
+          label: voice.micAllowed ? 'Mic: allowed' : 'Mic: denied',
+          height: 36,
+          onTap: () => ref.read(voiceDebugProvider.notifier).set((v) => v.copyWith(micAllowed: !v.micAllowed)),
+        ),
       ]),
       label('SWITCHES'),
       Wrap(spacing: 8, runSpacing: 8, children: [

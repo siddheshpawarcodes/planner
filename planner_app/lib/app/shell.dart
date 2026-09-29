@@ -5,13 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/voice/planner_orb.dart';
+import '../features/voice/voice_controller.dart';
+import '../features/voice/voice_overlay.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/note_strip.dart';
 import '../widgets/planner_sheet.dart';
 import 'state/actions.dart';
 import 'state/clock.dart';
 import 'state/derived.dart';
-import 'state/note.dart';
 import 'state/staging.dart';
 import 'state/ui_state.dart';
 import 'theme/planner_theme.dart';
@@ -89,32 +90,13 @@ class _AppShellState extends ConsumerState<AppShell> {
               tab: _tab,
               onTab: _onTab,
               planBump: bump,
-              showHey: _tab == AppTab.today && wake,
+              showHey: _tab == AppTab.today && wake && !ref.watch(voiceControllerProvider.select((v) => v.open)),
             ),
           ),
         ),
-        // The orb, docked in the nav's centre slot.
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: bottom + kNavHeight - 30 - 50,
-          height: 100,
-          child: Center(
-            child: Semantics(
-              button: true,
-              label: 'Talk to Planner',
-              onTap: () => ref.read(noteProvider.notifier).say('Voice arrives in milestone 7.'),
-              child: GestureDetector(
-                onTap: () => ref.read(noteProvider.notifier).say('Voice arrives in milestone 7.'),
-                child: SizedBox(
-                  width: 100,
-                  height: 100,
-                  child: PlannerOrb(state: OrbState.idle, core: _coreColor(), size: 100),
-                ),
-              ),
-            ),
-          ),
-        ),
+        // Prototype z-order: veil 20, orb 30, sheets 50, note 55.
+        const Positioned.fill(child: VoiceOverlay()),
+        _OrbLayer(core: _coreColor()),
         const Positioned.fill(child: SheetHost()),
         Positioned(
           left: 16,
@@ -126,8 +108,10 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  /// Core = the current task's category, or warm white.
+  /// Core = the voice result's category, the current task's, or warm white.
   Color? _coreColor() {
+    final vc = ref.watch(voiceControllerProvider.select((v) => v.open ? v.res?.core : null));
+    if (vc != null) return vc.color;
     final tasks = ref.watch(visibleTasksProvider);
     final today = ref.watch(todayProvider);
     final now = ref.watch(nowMinuteProvider);
@@ -221,6 +205,69 @@ class _Pane extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+
+/// The Planner Orb: docked in the nav at 0.42, it rises to the upper centre
+/// at 1.1 over 760ms Cubic(.34, 1.22, .5, 1) when voice opens. Tapping it
+/// works anywhere in the app.
+class _OrbLayer extends ConsumerWidget {
+  const _OrbLayer({required this.core});
+  final Color? core;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final v = ref.watch(voiceControllerProvider);
+    final level = ref.watch(orbLevelProvider);
+    final mq = MediaQuery.of(context);
+    final k = (mq.size.height / 860).clamp(0.78, 1.2);
+    final docked = mq.size.height - mq.padding.bottom - kNavHeight + 30;
+    final top = 320 * k;
+    return Positioned.fill(
+      child: Stack(children: [
+        TweenAnimationBuilder<double>(
+          tween: Tween(end: v.open ? 1 : 0),
+          duration: PlannerMotion.ms(context, 760),
+          curve: PlannerMotion.wakeCurve,
+          builder: (context, t, child) {
+            final cy = docked + (top - docked) * t;
+            final scale = 0.42 + (1.1 - 0.42) * t;
+            return Positioned(
+              left: mq.size.width / 2 - 120,
+              top: cy - 120,
+              width: 240,
+              height: 240,
+              child: IgnorePointer(child: Transform.scale(scale: scale, child: child)),
+            );
+          },
+          child: PlannerOrb(
+            state: v.phase,
+            core: core,
+            level: level,
+            speaking: v.speaking,
+            controller: ref.watch(orbControllerProvider),
+            size: 240,
+          ),
+        ),
+        if (!v.open)
+          Positioned(
+            left: mq.size.width / 2 - 32,
+            top: docked - 32,
+            width: 64,
+            height: 64,
+            child: Semantics(
+              button: true,
+              label: 'Talk to Planner',
+              onTap: ref.read(voiceControllerProvider.notifier).tapOrb,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: ref.read(voiceControllerProvider.notifier).tapOrb,
+              ),
+            ),
+          ),
+      ]),
     );
   }
 }
