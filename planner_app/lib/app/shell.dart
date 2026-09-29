@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import '../features/voice/planner_orb.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/note_strip.dart';
+import '../widgets/planner_sheet.dart';
+import 'state/actions.dart';
 import 'state/clock.dart';
 import 'state/derived.dart';
 import 'state/note.dart';
@@ -39,6 +41,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   void initState() {
     super.initState();
     _syncTab();
+    WidgetsBinding.instance.addPostFrameCallback((_) => ref.read(actionsProvider).topUpSeries());
   }
 
   void _syncTab() {
@@ -112,6 +115,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             ),
           ),
         ),
+        const Positioned.fill(child: SheetHost()),
         Positioned(
           left: 16,
           right: 16,

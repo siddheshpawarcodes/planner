@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/settings.dart';
+import '../../domain/category.dart';
 
 enum AppTab { today, plan, progress, settings }
 
@@ -94,6 +95,7 @@ class TaskDraft {
     this.editId,
     this.heard,
     this.start,
+    this.cat,
   });
   final String title;
   final int? duration;
@@ -105,6 +107,7 @@ class TaskDraft {
 
   /// Exact start when editing.
   final int? start;
+  final Category? cat;
 }
 
 class SheetState {

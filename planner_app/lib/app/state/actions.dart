@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/planner_data.dart';
 import '../../domain/routine.dart';
 import '../../domain/scheduler.dart';
+import '../../domain/series.dart';
 import '../../domain/task.dart';
 import '../../domain/time.dart';
+import '../../features/tasks/task_form.dart';
 import '../router.dart';
 import 'clock.dart';
 import 'derived.dart';
@@ -197,4 +199,167 @@ class PlannerActions {
 
   void offlineInfo() =>
       note.say('Offline. Everything is saved on this phone and backs up when you reconnect.');
+
+  // ------------------------------------------------------- task sheet
+
+  void openEdit(String id) {
+    final t = data.task(id);
+    if (t == null || !t.isScheduled) return;
+    ref.read(sheetProvider.notifier).open(
+        SheetState(SheetKind.create, draft: TaskDraft(editId: id, title: t.title)));
+  }
+
+  /// TaskSheet › Schedule (prototype `schedule`). Commits first; then the
+  /// placement sequence explains it on Today (today or tomorrow), or the
+  /// Week board flashes the new block for later days.
+  Future<void> schedule(TaskForm f) async {
+    final sl = f.slot(routine, data.tasks, today: today, now: now);
+    if (sl == null) return;
+    final cat = f.effectiveCat;
+    if (f.editId != null) {
+      final t = data.task(f.editId!);
+      if (t == null) return;
+      final ok = await store.putTasks([
+        t.copyWith(
+          title: f.title.trim(),
+          cat: cat,
+          day: sl.day,
+          start: sl.start,
+          end: sl.end,
+          duration: f.duration,
+          priority: f.priority,
+          deadline: f.deadline,
+          recurrence: f.recur,
+        )
+      ]);
+      if (!ok) return _failed(() => schedule(f));
+      closeSheet();
+      note.say('Saved.');
+      return;
+    }
+    final id = store.newId();
+    var t = Task.make(id, f.title.trim(), cat, sl.day, sl.start, f.duration!,
+        priority: f.priority,
+        deadline: f.deadline,
+        recurrence: f.recur,
+        source: f.heard != null ? Source.voice : Source.manual,
+        createdAt: DateTime.now());
+    final extra = <Task>[];
+    Series? series;
+    if (f.recur != null) {
+      series = Series(
+          id: 's$id',
+          title: t.title,
+          cat: cat,
+          rule: f.recur!,
+          start: sl.start,
+          end: sl.end,
+          from: sl.day);
+      t = t.copyWith(seriesId: series.id);
+      extra.addAll(materializeSeries(series, [...data.tasks, t], routine,
+          fromDay: sl.day + 1, toDay: today + kSeriesHorizonDays));
+    }
+    closeSheet();
+    final rel = sl.day - today;
+    final onToday = rel == 0 || rel == 1;
+    if (onToday) {
+      // Staging first (UI only), so the new block never flashes in place.
+      staging.setPlace([id], PlaceStage.hidden);
+      staging.update((s) => s.copyWith(winIds: [id], winLit: true));
+    }
+    final ok = await store.putTasks([t, ...extra]);
+    if (series != null && ok) await store.putSeries(series);
+    if (!ok) {
+      staging.setPlace([id], null);
+      staging.update((s) => s.copyWith(winIds: const [], winLit: false));
+      return _failed(() => schedule(f));
+    }
+    if (onToday) {
+      goTab(AppTab.today);
+      if (ref.read(todayUiProvider).dayOffset != rel) setDay(rel);
+      seq.at(560 * m, () => runPlacement([id]));
+    } else {
+      ref.read(planUiProvider.notifier).set((p) => p.copyWith(seg: PlanSeg.week, weekSel: sl.day));
+      goTab(AppTab.plan);
+      flash([id]);
+      note.say('${t.title} added to ${when(sl.day, sl.start)}.');
+    }
+  }
+
+  /// The placement sequence (prototype `runPlacement`): the window lights
+  /// and a scan line sweeps it; each task is introduced at the top of the
+  /// window, then 360ms later placed at its exact minute, 620ms apart.
+  /// Capacity and the odometer update as each one lands.
+  void runPlacement(List<String> ids) {
+    final mm = ref.read(reducedMotionProvider) ? 0.1 : 1.0;
+    staging.update((s) => s.copyWith(scanning: true, winLit: true, winIds: ids));
+    final t = 850 * mm;
+    seq.at(t, () => staging.update((s) => s.copyWith(scanning: false)));
+    for (final (i, id) in ids.indexed) {
+      final t0 = t + i * 620 * mm;
+      seq.at(t0, () => staging.setPlace([id], PlaceStage.staged));
+      seq.at(t0 + 360 * mm, () {
+        Haptics.place();
+        staging.setPlace([id], PlaceStage.placed);
+      });
+    }
+    seq.at(t + ids.length * 620 * mm + 500 * mm, () {
+      staging.update((s) => s.copyWith(winLit: false, winIds: const []));
+      staging.setPlace(ids, null);
+      final placed = [for (final id in ids) data.task(id)].whereType<Task>().toList();
+      if (placed.length == 1) {
+        final p = placed.first;
+        note.say('${p.title} placed at ${p.day == today ? 'today' : 'tomorrow'}, ${fmt(p.start!)}.');
+      } else if (placed.isNotEmpty) {
+        note.say('${placed.length} tasks placed ${placed.first.day == today ? 'tonight' : 'tomorrow evening'}.');
+      }
+    });
+  }
+
+  // ------------------------------------------------------ detail sheet
+
+  Future<void> completeFromSheet(String id) async {
+    final t = data.task(id);
+    closeSheet();
+    if (t == null) return;
+    if (t.done) {
+      await store.putTasks([uncompleteTask(t)]);
+      return;
+    }
+    await toggle(id, delayMs: 300);
+  }
+
+  Future<void> skipTask(String id) async {
+    final t = data.task(id);
+    if (t == null) return;
+    if (!await store.putTasks([t.copyWith(skipped: true)])) return _failed(() => skipTask(id));
+    closeSheet();
+    note.undoable('${t.title} skipped this time.', () {
+      final cur = data.task(id);
+      if (cur != null) store.putTasks([cur.copyWith(skipped: false)]);
+    });
+  }
+
+  Future<void> deleteTask(String id) async {
+    final t = data.task(id);
+    if (t == null) return;
+    if (!await store.putTasks([t.copyWith(deleted: true)])) return _failed(() => deleteTask(id));
+    closeSheet();
+    note.undoable('${t.title} deleted.', () {
+      final cur = data.task(id);
+      if (cur != null) store.putTasks([cur.copyWith(deleted: false)]);
+    });
+  }
+
+  /// Keeps every series materialised [kSeriesHorizonDays] ahead.
+  Future<void> topUpSeries() async {
+    var all = data.tasks;
+    final add = <Task>[];
+    for (final s in data.series) {
+      final occ = materializeSeries(s, all, routine, fromDay: today, toDay: today + kSeriesHorizonDays);
+      add.addAll(occ);
+      all = [...all, ...occ];
+    }
+    if (add.isNotEmpty) await store.putTasks(add);
+  }
 }

@@ -461,6 +461,7 @@ class PlannerChip extends StatelessWidget {
       child: SizedBox(
         height: 44,
         child: Center(
+          widthFactor: 1,
           child: AnimatedContainer(
             duration: PlannerMotion.of(context, PlannerMotion.snap),
             height: height,
