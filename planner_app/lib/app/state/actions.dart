@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/planner_data.dart';
 import '../../domain/routine.dart';
+import '../../domain/capacity.dart';
 import '../../domain/scheduler.dart';
 import '../../domain/series.dart';
 import '../../domain/task.dart';
@@ -361,5 +362,111 @@ class PlannerActions {
       all = [...all, ...occ];
     }
     if (add.isNotEmpty) await store.putTasks(add);
+  }
+
+  // --------------------------------------------------------------- plan
+
+  /// The selected board day (Today and Tomorrow modes pin it).
+  int get planSel {
+    final p = ref.read(planUiProvider);
+    return switch (p.seg) {
+      PlanSeg.today => today,
+      PlanSeg.tomorrow => today + 1,
+      _ => p.weekSel ?? today,
+    };
+  }
+
+  void setSeg(PlanSeg seg) => ref.read(planUiProvider.notifier).set((p) => switch (seg) {
+        PlanSeg.today => PlanUi(seg: seg, weekSel: today),
+        PlanSeg.tomorrow => PlanUi(seg: seg, weekSel: today + 1),
+        _ => p.copyWith(seg: seg),
+      });
+
+  /// Tapping a column (prototype `selDay`): in the day zooms, today and
+  /// tomorrow keep their zoom; any other day opens Week on it.
+  void selDay(int d) {
+    final p = ref.read(planUiProvider);
+    final ctl = ref.read(planUiProvider.notifier);
+    if (p.seg != PlanSeg.week) {
+      if (d == today) return ctl.set((_) => PlanUi(seg: PlanSeg.today, weekSel: d));
+      if (d == today + 1) return ctl.set((_) => PlanUi(seg: PlanSeg.tomorrow, weekSel: d));
+      return ctl.set((_) => PlanUi(seg: PlanSeg.week, weekSel: d));
+    }
+    ctl.set((x) => x.copyWith(weekSel: d));
+  }
+
+  void _scan(List<int> days) {
+    staging.recalc(days);
+    seq.at(900, staging.clearRecalc);
+  }
+
+  /// Drop after a drag (prototype `wUp`): ripple, commit, scan both days,
+  /// and say what happened. A move to another day counts as a reschedule.
+  Future<void> dropOnBoard(String id, int day, int start) async {
+    final before = data.tasks;
+    final t = data.task(id);
+    if (t == null || t.done) return;
+    final from = t.day!;
+    var next = ripple(before, id, day, start, routine);
+    final moved = next.firstWhere((x) => x.id == id);
+    if (moved.day == t.day && moved.start == t.start) return;
+    if (moved.day != from) {
+      next = [
+        for (final x in next) x.id == id ? x.copyWith(movedCount: t.movedCount + 1) : x
+      ];
+    }
+    final pushed = ripplePushed(before, next, id);
+    final byId = {for (final x in before) x.id: x};
+    final changed = [for (final x in next) if (!identical(byId[x.id], x)) x];
+    if (!await store.commitTaskList(next)) return _failed(() => dropOnBoard(id, day, start));
+    Haptics.place();
+    _scan([from, day]);
+    final c = capOf(moved.day!, routine, next, moved.day == today ? now : 0);
+    final dn = dayLongNames[weekday0(moved.day!)];
+    final tail = c.isOver ? ' $dn is now ${dur(c.over)} over what fits.' : ' $dn: ${dur(c.planned)} planned.';
+    final made = pushed > 0 ? ' $pushed ${pushed > 1 ? 'blocks' : 'block'} made room.' : '';
+    note.undoable('${t.title} moved to ${when(moved.day!, moved.start!)}.$made$tail', () {
+      store.putTasks([for (final x in changed) byId[x.id]!]);
+    });
+  }
+
+  /// "Move one" under the board (prototype `moveOverGeneric`).
+  Future<void> moveOneFrom(int d) async {
+    final m = moveOneBlock(d, routine, data.tasks,
+        today: today, now: now, lastDay: weekStart(d) + 6);
+    if (m == null) {
+      note.say('No lighter day this week. Keeping it.');
+      return;
+    }
+    await moveTask(m.task.id, m.day, m.slot.start, m.slot.end,
+        why: '${m.task.title} moved to ${when(m.day, m.slot.start)}. ${dayLongNames[weekday0(d)]} fits again.');
+    _scan([d, m.day]);
+  }
+
+  void keepWeek(int d) =>
+      staging.update((s) => s.copyWith(overAckWeek: {...s.overAckWeek, d}));
+
+  /// "Fit in" for an Unscheduled task (prototype `fitIn`).
+  Future<void> fitIn(String id) async {
+    final t = data.task(id);
+    if (t == null) return;
+    final sl = fitInSlot(t, routine, data.tasks, today: today, now: now);
+    if (sl == null) {
+      note.say('No room for ${t.title} this week.');
+      return;
+    }
+    if (!await store.putTasks([t.copyWith(day: sl.day, start: sl.start, end: sl.end)])) {
+      return _failed(() => fitIn(id));
+    }
+    flash([id]);
+    final p = ref.read(planUiProvider);
+    if (p.seg != PlanSeg.upcoming && p.seg == PlanSeg.week) {
+      ref.read(planUiProvider.notifier).set((x) => x.copyWith(weekSel: sl.day));
+    }
+    note.undoable(
+        '${t.title} fits ${sl.day == today ? 'today, ${fmt(sl.start)}' : when(sl.day, sl.start)}.', () {
+      final cur = data.task(id);
+      if (cur != null) store.putTasks([cur.copyWith(day: null, start: null, end: null)]);
+    });
   }
 }

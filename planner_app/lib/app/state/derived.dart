@@ -16,6 +16,12 @@ final routineProvider =
 final tasksProvider =
     Provider<List<Task>>((ref) => ref.watch(plannerStoreProvider.select((d) => d.tasks)));
 
+final deadlinesProvider = Provider<List<Deadline>>(
+    (ref) => ref.watch(plannerStoreProvider.select((d) => d.deadlines)));
+
+final seriesProvider =
+    Provider<List<Series>>((ref) => ref.watch(plannerStoreProvider.select((d) => d.series)));
+
 final settingsProvider =
     Provider<Settings>((ref) => ref.watch(plannerStoreProvider.select((d) => d.settings)));
 
