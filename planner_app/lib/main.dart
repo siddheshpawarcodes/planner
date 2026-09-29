@@ -1,21 +1,44 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'app/dev/foundations_page.dart';
-import 'app/theme/planner_theme.dart';
+import 'app/app.dart';
+import 'app/dev/scenarios.dart';
+import 'app/state/clock.dart';
+import 'app/state/store.dart';
+import 'data/database.dart';
+import 'data/repository.dart';
+import 'domain/time.dart';
 
-void main() => runApp(const PlannerApp());
+/// Debug: `--dart-define=PLANNER_SCENARIO=wed` starts at a journey step.
+const _scenario = String.fromEnvironment('PLANNER_SCENARIO');
 
-class PlannerApp extends StatelessWidget {
-  const PlannerApp({super.key});
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final repo = DriftPlannerRepository(PlannerDatabase());
+  var data = await repo.load();
+  DateTime? pinned;
 
-  @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: 'Planner',
-        debugShowCheckedModeBanner: false,
-        theme: plannerTheme(PlannerColors.light),
-        darkTheme: plannerTheme(PlannerColors.dark),
-        themeAnimationDuration: themeAnimationDuration,
-        themeAnimationCurve: themeAnimationCurve,
-        home: const FoundationsPage(),
-      );
+  if (kDebugMode && _scenario.isNotEmpty) {
+    final k = Scenario.values.where((s) => s.name == _scenario).firstOrNull;
+    if (k != null) {
+      final s = buildScenario(k);
+      data = s.data.copyWith(settings: data.settings);
+      await repo.replaceAll(data);
+      pinned = s.clock;
+    }
+  }
+  if (data.installedDay == null) {
+    // First launch. Onboarding (milestone 8) will set the routine; until
+    // then the default routine is used.
+    data = data.copyWith(installedDay: dayOf(DateTime.now()), onboarded: true);
+    await repo.putMeta(metaOf(data));
+  }
+
+  final container = ProviderContainer(overrides: [
+    repositoryProvider.overrideWithValue(repo),
+    initialDataProvider.overrideWithValue(data),
+  ]);
+  if (pinned != null) container.read(clockProvider.notifier).pin(pinned);
+  runApp(UncontrolledProviderScope(container: container, child: const PlannerApp()));
 }
