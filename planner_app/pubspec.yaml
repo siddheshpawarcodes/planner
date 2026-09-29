@@ -41,6 +41,8 @@ dependencies:
   path: ^1.9.1
   intl: ^0.20.3
   drift_flutter: ^0.3.1
+  speech_to_text: ^7.5.0
+  permission_handler: ^13.0.2
 
 dev_dependencies:
   flutter_test:
