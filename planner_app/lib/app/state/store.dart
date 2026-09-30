@@ -17,6 +17,8 @@ final repositoryProvider = Provider<PlannerRepository>(
 /// synchronous from the first frame.
 final initialDataProvider = Provider<PlannerData>((ref) => const PlannerData());
 
+const Object _keepAccount = Object();
+
 final plannerStoreProvider =
     NotifierProvider<PlannerStore, PlannerData>(PlannerStore.new);
 
@@ -134,12 +136,14 @@ class PlannerStore extends Notifier<PlannerData> {
     int? installedDay,
     DateTime? lastSyncAt,
     bool? changedSinceSync,
+    Object? driveAccount = _keepAccount,
   }) async {
     final next = state.copyWith(
         onboarded: onboarded,
         installedDay: installedDay,
         lastSyncAt: lastSyncAt,
-        changedSinceSync: changedSinceSync);
+        changedSinceSync: changedSinceSync,
+        driveAccount: identical(driveAccount, _keepAccount) ? state.driveAccount : driveAccount);
     final ok = await _guard(() => _repo.putMeta(metaOf(next)));
     if (ok) state = next;
     return ok;

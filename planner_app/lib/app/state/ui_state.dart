@@ -151,6 +151,15 @@ class PlatformMotion extends Notifier<bool> {
 final platformReducedMotionProvider =
     NotifierProvider<PlatformMotion, bool>(PlatformMotion.new);
 
+/// Settings › Google Drive is showing over the Settings root.
+class DrivePageOpen extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void set(bool v) => state = v;
+}
+
+final drivePageOpenProvider = NotifierProvider<DrivePageOpen, bool>(DrivePageOpen.new);
+
 /// Connectivity (offline shows the LOCAL chip, never a banner).
 class OnlineController extends Notifier<bool> {
   @override

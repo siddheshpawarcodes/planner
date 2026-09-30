@@ -12,7 +12,9 @@ import '../../data/settings.dart';
 import '../../domain/time.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/icons.dart';
+import '../../app/state/ui_state.dart';
 import '../notifications/notification_service.dart';
+import 'drive_page.dart';
 
 /// Settings (README 6.10): a push page with Routine, Notifications, Voice,
 /// Appearance, Data and statistics, and About. Debug builds add the
@@ -159,7 +161,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ('Commitments', '${r.commitments.where((x) => x.on).length} recurring'),
     ];
 
-    return ListView(
+    final driveOpen = ref.watch(drivePageOpenProvider);
+    final openDrive = ref.read(drivePageOpenProvider.notifier);
+    final root = ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
       children: [
         SizedBox(
@@ -232,6 +236,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             (v) => _set((x) => x.copyWith(todayView: v))),
         gap,
 
+        heading('Backup'),
+        DriveRow(onTap: () => openDrive.set(true)),
+        gap,
+
         heading('Data and statistics'),
         row('Week starts on', value('Monday')),
         toggle('Count skipped as missed', 'Off: skipping is a decision, not a failure', s.countSkippedAsMissed,
@@ -252,6 +260,39 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         if (kDebugMode) ...[const SizedBox(height: 10), const DevPanel()],
       ],
+    );
+    final reduced = PlannerMotion.reduced(context);
+    // Drive slides in from the right; the root moves 24% left and fades.
+    return PopScope(
+      canPop: !driveOpen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) openDrive.set(false);
+      },
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(end: driveOpen ? 1 : 0),
+        duration: PlannerMotion.ms(context, 520),
+        curve: PlannerMotion.settleCurve,
+        builder: (context, v, _) => Stack(children: [
+          IgnorePointer(
+            ignoring: driveOpen,
+            child: ExcludeSemantics(
+              excluding: driveOpen,
+              child: Opacity(
+                opacity: reduced ? 1 - v : (1 - v * 1.4).clamp(0.0, 1.0),
+                child: FractionalTranslation(translation: Offset(reduced ? 0 : -0.24 * v, 0), child: root),
+              ),
+            ),
+          ),
+          if (v > 0.001)
+            FractionalTranslation(
+              translation: Offset(reduced ? 0 : 1 - v, 0),
+              child: Opacity(
+                opacity: reduced ? v : 1,
+                child: ColoredBox(color: c.bg, child: DrivePage(onBack: () => openDrive.set(false))),
+              ),
+            ),
+        ]),
+      ),
     );
   }
 }

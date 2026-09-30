@@ -33,6 +33,7 @@ Map<String, Object?> metaOf(PlannerData d) => {
       'deviceId': d.deviceId,
       'lastSyncAt': d.lastSyncAt?.toIso8601String(),
       'changedSinceSync': d.changedSinceSync,
+      'driveAccount': d.driveAccount,
     };
 
 class DriftPlannerRepository implements PlannerRepository {
@@ -137,6 +138,7 @@ class DriftPlannerRepository implements PlannerRepository {
           ? DateTime.tryParse(meta['lastSyncAt']! as String)
           : null,
       changedSinceSync: meta['changedSinceSync'] as bool? ?? false,
+      driveAccount: meta['driveAccount'] as String?,
     );
   }
 
@@ -272,6 +274,8 @@ class MemoryPlannerRepository implements PlannerRepository {
         onboarded: meta['onboarded'] as bool?,
         installedDay: meta['installedDay'] as int?,
         changedSinceSync: meta['changedSinceSync'] as bool?,
+        lastSyncAt: meta['lastSyncAt'] is String ? DateTime.tryParse(meta['lastSyncAt']! as String) : null,
+        driveAccount: meta['driveAccount'] as String?,
       ));
 
   @override

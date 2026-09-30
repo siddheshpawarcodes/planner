@@ -16,6 +16,7 @@ class PlannerData {
     this.deviceId = 'this-phone',
     this.lastSyncAt,
     this.changedSinceSync = false,
+    this.driveAccount,
   });
 
   final Routine routine;
@@ -35,6 +36,9 @@ class PlannerData {
 
   /// Local edits since the last Drive sync (conflict detection).
   final bool changedSinceSync;
+
+  /// The connected Google account, or null when Drive is not connected.
+  final String? driveAccount;
 
   int historyDays(int today) =>
       installedDay == null ? 0 : (today - installedDay!).clamp(0, 100000);
@@ -57,6 +61,7 @@ class PlannerData {
     String? deviceId,
     DateTime? lastSyncAt,
     bool? changedSinceSync,
+    Object? driveAccount = _keep,
   }) =>
       PlannerData(
         routine: routine ?? this.routine,
@@ -69,5 +74,8 @@ class PlannerData {
         deviceId: deviceId ?? this.deviceId,
         lastSyncAt: lastSyncAt ?? this.lastSyncAt,
         changedSinceSync: changedSinceSync ?? this.changedSinceSync,
+        driveAccount: identical(driveAccount, _keep) ? this.driveAccount : driveAccount as String?,
       );
 }
+
+const Object _keep = Object();

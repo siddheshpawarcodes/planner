@@ -5,6 +5,7 @@ import '../../app/state/actions.dart';
 import '../../app/state/staging.dart';
 import '../../app/state/ui_state.dart';
 import '../../app/theme/planner_theme.dart';
+import '../../data/backup/sync.dart';
 import '../../data/settings.dart';
 import '../../domain/time.dart';
 import '../../widgets/capacity_meter.dart';
@@ -24,6 +25,7 @@ class TodayHeader extends ConsumerWidget {
     final m = ref.watch(todayModelProvider);
     final ui = ref.watch(todayUiProvider);
     final online = ref.watch(onlineProvider);
+    final sync = ref.watch(syncProvider);
     final act = ref.read(actionsProvider);
     final navBump = ref.watch(stagingProvider.select((s) => s.navBump));
     final bumping = navBump > 0 &&
@@ -58,6 +60,26 @@ class TodayHeader extends ConsumerWidget {
                     PlannerIcon(PIcon.cloudOff, size: 15, color: c.t2, stroke: 1.6),
                     const SizedBox(width: 6),
                     Text('LOCAL', style: PlannerType.stateLabel(size: 11, tracking: 0, weight: 500, color: c.t2)),
+                  ]),
+                ),
+              ),
+            // SyncChip: silent when synced; SYNCING while busy; a conflict
+            // asks for a decision in Settings › Google Drive.
+            if (sync.busy || sync.status == SyncStatus.conflict)
+              Pressable(
+                onTap: sync.status == SyncStatus.conflict ? act.openDrivePage : null,
+                label: sync.busy ? 'Syncing with Google Drive' : 'Google Drive needs a decision',
+                excludeChildSemantics: true,
+                child: Container(
+                  height: 32,
+                  margin: const EdgeInsets.only(left: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(color: c.s1, borderRadius: BorderRadius.circular(999)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    PlannerIcon(PIcon.cloud, size: 15, color: c.t2, stroke: 1.6),
+                    const SizedBox(width: 6),
+                    Text(sync.busy ? 'SYNCING' : 'NEEDS A DECISION',
+                        style: PlannerType.stateLabel(size: 11, tracking: 0, weight: 500, color: c.t2)),
                   ]),
                 ),
               ),

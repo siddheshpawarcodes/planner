@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:planner_app/app/dev/scenarios.dart';
 import 'package:planner_app/app/state/actions.dart';
 import 'package:planner_app/app/state/ui_state.dart';
+import 'package:planner_app/data/backup/sync.dart';
 import 'package:planner_app/data/settings.dart';
+import 'package:planner_app/features/settings/settings_page.dart';
 
 import 'harness.dart';
 
@@ -14,6 +16,19 @@ Future<Harness> openSettings(WidgetTester tester) async {
   h.container.read(actionsProvider).goTab(AppTab.settings);
   await h.settle(800);
   return h;
+}
+
+/// Slow drags (no fling) until "Delete all data" sits mid-screen.
+Future<void> revealDelete(WidgetTester tester, Harness h) async {
+  final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable)).first;
+  for (var i = 0; i < 40 && find.text('Delete all data').evaluate().isEmpty; i++) {
+    await tester.timedDrag(list, const Offset(0, -150), const Duration(milliseconds: 600));
+    await h.settle(200);
+  }
+  while (tester.getCenter(find.text('Delete all data')).dy > 600) {
+    await tester.timedDrag(list, const Offset(0, -80), const Duration(milliseconds: 600));
+    await h.settle(200);
+  }
 }
 
 void main() {
@@ -44,7 +59,7 @@ void main() {
 
   testWidgets('Delete all data needs a second tap, then onboarding opens', (tester) async {
     final h = await openSettings(tester);
-    await tester.scrollUntilVisible(find.text('Delete all data'), 300);
+    await revealDelete(tester, h);
     await tester.tap(find.text('Delete all data'));
     await tester.pump();
     expect(find.text('Tap again to erase everything on this phone'), findsOneWidget);
@@ -59,11 +74,57 @@ void main() {
 
   testWidgets('the first tap disarms after 4 seconds', (tester) async {
     final h = await openSettings(tester);
-    await tester.scrollUntilVisible(find.text('Delete all data'), 300);
+    await revealDelete(tester, h);
     await tester.tap(find.text('Delete all data'));
     await tester.pump();
     await h.settle(4200);
+
     expect(find.text('Delete all data'), findsOneWidget);
+    await h.dispose();
+  });
+
+  testWidgets('Google Drive: connect, back up, restore sheet, conflict chip', (tester) async {
+    final h = await openSettings(tester);
+    final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable)).first;
+    while (find.text('Google Drive').evaluate().isEmpty) {
+      await tester.timedDrag(list, const Offset(0, -150), const Duration(milliseconds: 600));
+      await h.settle(200);
+    }
+    expect(find.text('Not connected'), findsOneWidget);
+    await tester.tap(find.text('Google Drive'));
+    await h.settle(800);
+    expect(find.text('Planner only sees the one backup file it creates. It can’t read the rest of your Drive.'), findsOneWidget);
+    await tester.tap(find.text('Connect Google Drive'));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Waiting for Google…'), findsOneWidget);
+    await h.settle(4000);
+    expect(find.text('you@gmail.com'), findsOneWidget);
+    expect(find.text('Back up now'), findsOneWidget);
+    expect(h.data.driveAccount, 'you@gmail.com');
+
+    await tester.tap(find.text('Restore from Drive'));
+    await h.settle(700);
+    expect(find.text('Replace this phone’s plan with the Drive backup?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await h.settle(700);
+
+    // Offline: backup waits, and says so.
+    h.container.read(onlineProvider.notifier).set(false);
+    await h.settle(300);
+    expect(find.text('Back up when online'), findsOneWidget);
+    expect(find.text('Offline, waiting to back up'), findsWidgets);
+    h.container.read(onlineProvider.notifier).set(true);
+    await h.settle(300);
+
+    // A newer backup from the tablet: the compare cards, and NEEDS A DECISION on Today.
+    // Started, not awaited: the stand-in's delays run on the test clock.
+    h.container.read(syncProvider.notifier).debugConflict();
+    await h.settle(2000);
+    expect(find.text('Two versions of your plan'), findsOneWidget);
+    expect(find.text('Keep this phone'), findsOneWidget);
+    h.container.read(actionsProvider).goTab(AppTab.today);
+    await h.settle(800);
+    expect(find.text('NEEDS A DECISION'), findsOneWidget);
     await h.dispose();
   });
 }

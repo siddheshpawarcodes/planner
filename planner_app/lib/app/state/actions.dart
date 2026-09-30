@@ -93,7 +93,9 @@ class PlannerActions {
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/$name');
       await file.writeAsString(PlannerSnapshot.of(data).encode());
-      await SharePlus.instance.share(ShareParams(files: [XFile(file.path, mimeType: 'application/json')], subject: name));
+      final r = await SharePlus.instance
+          .share(ShareParams(files: [XFile(file.path, mimeType: 'application/json')], subject: name));
+      if (r.status == ShareResultStatus.dismissed) return null;
       note.say('Exported $name.');
       return name;
     } catch (_) {
@@ -253,6 +255,12 @@ class PlannerActions {
       SheetState(SheetKind.create, draft: draft ?? TaskDraft(date: date)));
 
   void closeSheet() => ref.read(sheetProvider.notifier).close();
+
+  /// SyncChip › NEEDS A DECISION: Settings › Google Drive.
+  void openDrivePage() {
+    ref.read(drivePageOpenProvider.notifier).set(true);
+    goTab(AppTab.settings);
+  }
 
   void offlineInfo() =>
       note.say('Offline. Everything is saved on this phone and backs up when you reconnect.');

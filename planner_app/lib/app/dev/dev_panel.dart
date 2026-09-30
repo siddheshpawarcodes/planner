@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/settings.dart';
+import '../../data/backup/sync.dart';
 import '../../domain/intents.dart';
 import '../../features/voice/speech.dart';
 import '../../widgets/controls.dart';
@@ -156,6 +157,14 @@ class DevPanel extends ConsumerWidget {
           label: online ? 'Network: online' : 'Network: offline',
           height: 36,
           onTap: () => ref.read(onlineProvider.notifier).set(!online),
+        ),
+        SecondaryPill(
+          label: 'Simulate a Drive conflict',
+          height: 36,
+          onTap: () async {
+            await ref.read(syncProvider.notifier).debugConflict();
+            ref.read(actionsProvider).openDrivePage();
+          },
         ),
         SecondaryPill(
           label: 'Foundations',
