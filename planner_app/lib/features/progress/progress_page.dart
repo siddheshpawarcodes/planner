@@ -138,7 +138,10 @@ class _ProgressPageState extends ConsumerState<ProgressPage> with SingleTickerPr
 
   Widget _dayLabels(PlannerColors c, WeekProgress p) => LayoutBuilder(
         builder: (context, box) => SizedBox(
-          height: 32,
+          // Two mono lines; grows with the text size.
+          height: MediaQuery.textScalerOf(context).scale(11) * 1.2 +
+              MediaQuery.textScalerOf(context).scale(10) * 1.2 +
+              6,
           child: Stack(children: [
             for (var d = 0; d < 7; d++)
               Positioned(

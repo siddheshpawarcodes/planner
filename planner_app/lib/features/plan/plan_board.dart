@@ -649,7 +649,11 @@ class _PlanBoardState extends ConsumerState<PlanBoard> {
               : exp || isDrag
               ? t.cat.tintAt(c, dark ? 0.28 : 0.22)
               : c.mix(col, 0.55);
-          final showText = (exp || isDrag) && h >= 13;
+          // Blocks keep their time-proportional height, so each line shows
+          // only when it fits at the current text size.
+          final ts = MediaQuery.textScalerOf(context);
+          final lineT = ts.scale(12) * 1.2, lineS = ts.scale(10) * 1.3;
+          final showText = (exp || isDrag) && h >= lineT + 3;
           final titleC = fullC && !missed
               ? t.cat.ink
               : missed
@@ -692,7 +696,7 @@ class _PlanBoardState extends ConsumerState<PlanBoard> {
                           overflow: TextOverflow.ellipsis,
                           style: PlannerType.taskTitle(size: 12, color: titleC),
                         ),
-                        if (h >= 30)
+                        if (h >= 3 + lineT + lineS)
                           Text(
                             '${fmt(t.start!)} → ${fmt(t.end!)}',
                             maxLines: 1,

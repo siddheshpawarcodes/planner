@@ -69,6 +69,9 @@ void main() {
     expect(find.text('Saturday runs 2h 45m past what fits. Move one block to a lighter day?'),
         findsOneWidget);
     await tester.ensureVisible(find.text('Move one'));
+    // Clear of the note strip, which the drop's long note makes taller.
+    await tester.drag(find.text('Move one'), const Offset(0, -200));
+    await h.settle(400);
     await tester.tap(find.text('Move one'));
     await tester.pump();
     final wmm = h.data.task('t5')!;

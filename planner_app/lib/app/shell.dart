@@ -391,6 +391,8 @@ class _OrbLayerState extends ConsumerState<_OrbLayer> {
                 onExit: (_) => setState(() => _hover = false),
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
+                  // The Semantics above carries the label and the tap.
+                  excludeFromSemantics: true,
                   onTap: ref.read(voiceControllerProvider.notifier).tapOrb,
                 ),
               ),

@@ -117,7 +117,8 @@ class _ReviewPageState extends ConsumerState<ReviewPage> with SingleTickerProvid
                     button: true,
                     label: 'Previous',
                     onTap: () => _go(_stage - 1),
-                    child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => _go(_stage - 1)),
+                    child: GestureDetector(
+                        behavior: HitTestBehavior.opaque, excludeFromSemantics: true, onTap: () => _go(_stage - 1)),
                   ),
                 ),
                 Positioned(
@@ -129,7 +130,8 @@ class _ReviewPageState extends ConsumerState<ReviewPage> with SingleTickerProvid
                     button: true,
                     label: 'Next',
                     onTap: () => _go(_stage + 1),
-                    child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => _go(_stage + 1)),
+                    child: GestureDetector(
+                        behavior: HitTestBehavior.opaque, excludeFromSemantics: true, onTap: () => _go(_stage + 1)),
                   ),
                 ),
                 Positioned(

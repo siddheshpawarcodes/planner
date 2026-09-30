@@ -18,18 +18,20 @@ Future<Harness> openSettings(WidgetTester tester) async {
   return h;
 }
 
-/// Slow drags (no fling) until "Delete all data" sits mid-screen.
-Future<void> revealDelete(WidgetTester tester, Harness h) async {
+/// Slow drags (no fling) until [text] sits mid-screen, clear of the nav.
+Future<void> reveal(WidgetTester tester, Harness h, String text) async {
   final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable)).first;
-  for (var i = 0; i < 40 && find.text('Delete all data').evaluate().isEmpty; i++) {
+  for (var i = 0; i < 40 && find.text(text).evaluate().isEmpty; i++) {
     await tester.timedDrag(list, const Offset(0, -150), const Duration(milliseconds: 600));
     await h.settle(200);
   }
-  while (tester.getCenter(find.text('Delete all data')).dy > 600) {
+  while (tester.getCenter(find.text(text)).dy > 600) {
     await tester.timedDrag(list, const Offset(0, -80), const Duration(milliseconds: 600));
     await h.settle(200);
   }
 }
+
+Future<void> revealDelete(WidgetTester tester, Harness h) => reveal(tester, h, 'Delete all data');
 
 void main() {
   testWidgets('switches and choices write settings; close returns to the last tab', (tester) async {
@@ -85,11 +87,7 @@ void main() {
 
   testWidgets('Google Drive: connect, back up, restore sheet, conflict chip', (tester) async {
     final h = await openSettings(tester);
-    final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable)).first;
-    while (find.text('Google Drive').evaluate().isEmpty) {
-      await tester.timedDrag(list, const Offset(0, -150), const Duration(milliseconds: 600));
-      await h.settle(200);
-    }
+    await reveal(tester, h, 'Google Drive');
     expect(find.text('Not connected'), findsOneWidget);
     await tester.tap(find.text('Google Drive'));
     await h.settle(800);

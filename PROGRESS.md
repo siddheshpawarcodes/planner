@@ -6,7 +6,7 @@ new session should read this file first, then `planner-final-handoff/README.md`
 (the exact prototype logic). Everything decided so far is recorded here, so
 nothing needs to be re-derived.
 
-Last updated: 30 September 2026, day 2 (milestones 1 to 6, 8 and 9 done; milestone 7 done except the real spotter and the live-mic check).
+Last updated: 30 September 2026, day 2 (milestones 1 to 10 done, except the real wake-word spotter and the real Google Drive client, which both need keys from the user).
 
 ---
 
@@ -136,9 +136,9 @@ planner_app/
 | 7 | Voice: overlay, orb, STT, intents, wake word | **Done except two items** | Grammar: 13 tests. Flow: 4 widget tests with the demo voice. Wake word: gating, `WakeWordEngine` interface, debug "Say Hey Planner" and orb hover are done (2 widget tests with a fake spotter). **Open:** a real spotter (needs a key, section 10) and the first run on the Motorola with the real microphone (the phone was not connected on day 2). |
 | 8 | Onboarding with assembly | **Done** | 14 domain tests (ranges, cascade, ruler, steps, 3h 10m / 6h copy, routine reflow) and 4 widget tests (first launch end to end, ruler and no fixed hours, Add your own, Edit routine). iPhone simulator. |
 | 9 | Progress (ribbon, heatmap) and weekly review | **Done** | 8 domain tests (Sunday and Wednesday scenarios, heat, carried, copy) and 4 widget tests (empty state, day select and With work, all six review stages with keys and Plan next week, closing). Motorola and iPhone simulator. |
-| 10 | Settings, Drive, offline; tablet and desktop; accessibility and reduced-motion pass | **In progress**: 10a Settings + notifications + export/delete, 10b Drive (stand-in client) + offline, 10c tablet/desktop + keyboard done; 10d accessibility and reduced-motion pass to do | 10a/10b: 4 domain/data suites (notifications, snapshot, sync) and 4 Settings widget tests; Settings and Export checked on the Motorola. |
+| 10 | Settings, Drive, offline; tablet and desktop; accessibility and reduced-motion pass | **Done** except the real Google Drive client (needs OAuth ids): 10a Settings + notifications + export/delete, 10b Drive (stand-in client) + offline, 10c tablet/desktop + keyboard, 10d accessibility and reduced-motion pass | Notifications, snapshot, sync suites; Settings, layout/keyboard and accessibility widget tests (every screen at 1.3× with reduced motion; 44px targets, labels and contrast via Flutter's guidelines). Motorola (Settings, Export), iPhone and iPad simulators, desktop rendered at 1440 × 900. |
 
-Test count on day 2: 115 passing (`flutter test`), analyzer clean. **First Android run done on the Motorola** (Today, Progress, Settings render correctly).
+Test count on day 2: 149 passing (`flutter test`), analyzer clean. **First Android run done on the Motorola** (Today, Progress, Settings render correctly).
 
 ---
 
@@ -210,6 +210,8 @@ All in `test/domain/scheduler_test.dart` and `test/app/*`:
 36. **Wide layouts reuse the router's branch navigators** (no duplicated pages): `PaneSwitcher` puts the Today branch in the 380 pane (tablet, left) or 400 rail (desktop, right, with the key legend) and shows Plan on the other side when Today or Plan is selected, Progress or Settings otherwise. The Plan branch is `preload: true` so the board is there on first launch. Each pane is its own semantics container: a navigator's page route blocks semantics painted before it in the same container, which had hidden the rail and Today pane from screen readers.
 37. **Keyboard:** `KeyboardHost` is a `Focus` at the shell root (no semantics node of its own), so focused blocks and sheets see keys first, text fields keep their letters (only Esc passes through, closing the sheet), and onboarding/review keep their own keys as separate routes. Keys: N, V, T, P (Plan), G (Progress), ← → (Today/Tomorrow on the phone, the board's day elsewhere, within the week), Esc, Ctrl/⌘ Z (the note's Undo), ? (panel). `TaskFocus` makes Today and board blocks focusable: Enter opens, Space completes, Alt ↑↓ ±15 min, Alt ←→ ±1 day (through the same ripple as a drag).
 38. **macOS** builds with a deployment target of 11.0 (speech_to_text requires it).
+39. **Accessibility pass (10d):** `test/app/a11y_test.dart` visits every screen at 1.3× text with reduced motion (any overflow fails) and runs Flutter's guidelines: 44 × 44 targets (README 3.4, not Android's 48), a label on every tap target, AA text contrast. Fixes it drove: segmented controls and short pills keep their look but get 44px hit areas (`minTarget`); duplicate unlabelled tap nodes removed (orb, ribbon days, review sides) with `excludeFromSemantics`; board block text lines and Progress day labels scale with the text size. **Exception:** the Plan board's time-proportional blocks (45 min = 18px) and 26px collapsed columns stay below 44px; they carry custom actions (Move earlier/later/to the next day), keyboard focus, and the same tasks at 44px+ on Today.
+40. **Reduced motion:** blur and the now pulse were already off; placement now skips the staged introduction entirely (blocks appear in place).
 
 ---
 
@@ -222,7 +224,6 @@ All in `test/domain/scheduler_test.dart` and `test/app/*`:
 ### Milestone 10
 - **Real Google Drive client** (the only Drive piece left): implement `DriveClient` with `google_sign_in` + `googleapis` Drive v3 `appDataFolder` and override `driveClientProvider` in `main.dart`. **Needs from the user: Google Cloud OAuth client ids** (Android SHA-1 + package, iOS client id and reversed client id URL scheme).
 - "Week starts on" is shown as Monday but not yet selectable (Progress and the board assume Monday).
-- **Accessibility and reduced-motion pass** (README 9 and 3.5): audit semantics labels against the Components board, focus order, 1.3× text scale on every screen, reduced motion everywhere (orb frozen, no ripples or pulse, blur off, placement in place).
 
 ### Also outstanding
 - Acceptance test from README 11 as one `integration_test` (onboard → voice → Move Flutter → complete early → missed → weekend → review).

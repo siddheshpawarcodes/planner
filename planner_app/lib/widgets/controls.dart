@@ -113,6 +113,11 @@ class _PressableState extends State<Pressable> {
   }
 }
 
+/// Keeps the hit area at least 44px tall around a shorter visual control
+/// (README 3.4: visible shapes can be smaller, the target never is).
+Widget minTarget(double visual, Widget child) =>
+    visual >= 44 ? child : SizedBox(height: 44, child: Center(widthFactor: 1, child: child));
+
 /// `PrimaryPill`: tx on bg, 44-52 tall.
 class PrimaryPill extends StatelessWidget {
   const PrimaryPill({
@@ -140,7 +145,7 @@ class PrimaryPill extends StatelessWidget {
       onTap: onTap,
       label: label,
       excludeChildSemantics: true,
-      child: AnimatedOpacity(
+      child: minTarget(height, AnimatedOpacity(
         duration: PlannerMotion.of(context, PlannerMotion.snap),
         opacity: enabled ? 1 : 0.4,
         child: Container(
@@ -162,7 +167,7 @@ class PrimaryPill extends StatelessWidget {
                   left: 0, right: 0, bottom: 6, child: LoadingSweep(color: foreground ?? c.bg)),
           ]),
         ),
-      ),
+      )),
     );
   }
 }
@@ -191,7 +196,7 @@ class SecondaryPill extends StatelessWidget {
       onTap: onTap,
       label: label,
       excludeChildSemantics: true,
-      child: Opacity(
+      child: minTarget(height, Opacity(
         opacity: onTap == null ? 0.4 : 1,
         child: Container(
           height: height,
@@ -209,7 +214,7 @@ class SecondaryPill extends StatelessWidget {
                 style: PlannerType.ui(height >= 48 ? 14 : 12.5, color: color ?? c.tx)),
           ),
         ),
-      ),
+      )),
     );
   }
 }
@@ -307,36 +312,50 @@ class SegmentedPill<T> extends StatelessWidget {
     final c = PlannerColors.of(context);
     final idx = options.indexWhere((o) => o.$1 == value);
     final n = options.length;
+    // The track keeps its visual height; the segments' hit areas span at
+    // least 44px over it (README 3.4).
+    final hit = height < 44 ? 44.0 : height;
     return Semantics(
       label: label,
       container: true,
-      child: Container(
+      child: SizedBox(
         width: width,
-        height: height,
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: outlined ? null : c.s1,
-          border: outlined ? Border.all(color: c.ln) : null,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: LayoutBuilder(builder: (context, box) {
-          final w = box.maxWidth / n;
-          return Stack(children: [
-            AnimatedPositioned(
-              duration: PlannerMotion.ms(context, 460),
-              curve: PlannerMotion.springCurve,
-              left: w * (idx < 0 ? 0 : idx),
-              top: 0,
-              bottom: 0,
-              width: w,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: outlined ? c.s1 : c.s2,
-                  borderRadius: BorderRadius.circular(999),
-                ),
+        height: hit,
+        child: Stack(children: [
+          Center(
+            child: Container(
+              height: height,
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: outlined ? null : c.s1,
+                border: outlined ? Border.all(color: c.ln) : null,
+                borderRadius: BorderRadius.circular(999),
               ),
+              child: LayoutBuilder(builder: (context, box) {
+                final w = box.maxWidth / n;
+                return Stack(children: [
+                  AnimatedPositioned(
+                    duration: PlannerMotion.ms(context, 460),
+                    curve: PlannerMotion.springCurve,
+                    left: w * (idx < 0 ? 0 : idx),
+                    top: 0,
+                    bottom: 0,
+                    width: w,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: outlined ? c.s1 : c.s2,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                ]);
+              }),
             ),
-            Row(children: [
+          ),
+          Positioned.fill(
+            left: 3,
+            right: 3,
+            child: Row(children: [
               for (var i = 0; i < n; i++)
                 Expanded(
                   child: Pressable(
@@ -358,8 +377,8 @@ class SegmentedPill<T> extends StatelessWidget {
                   ),
                 ),
             ]),
-          ]);
-        }),
+          ),
+        ]),
       ),
     );
   }

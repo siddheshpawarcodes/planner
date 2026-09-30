@@ -360,10 +360,12 @@ class PlannerActions {
     staging.update((s) => s.copyWith(scanning: true, winLit: true, winIds: ids));
     final t = 850 * mm;
     seq.at(t, () => staging.update((s) => s.copyWith(scanning: false)));
+    final reduced = ref.read(reducedMotionProvider);
     for (final (i, id) in ids.indexed) {
       final t0 = t + i * 620 * mm;
-      seq.at(t0, () => staging.setPlace([id], PlaceStage.staged));
-      seq.at(t0 + 360 * mm, () {
+      // Reduced motion: each block appears in place, with no introduction.
+      if (!reduced) seq.at(t0, () => staging.setPlace([id], PlaceStage.staged));
+      seq.at(t0 + (reduced ? 0 : 360 * mm), () {
         Haptics.place();
         staging.setPlace([id], PlaceStage.placed);
       });

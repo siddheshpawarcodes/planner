@@ -163,7 +163,8 @@ class _CategoryRibbonState extends State<CategoryRibbon> with SingleTickerProvid
                   selected: widget.selected == d,
                   label: '${dayLongNames[d]}: ${dur(p.dayTotal(d, withWork: widget.withWork))} tracked',
                   onTap: () => widget.onSelect!(d),
-                  child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => widget.onSelect!(d)),
+                  child: GestureDetector(
+                      behavior: HitTestBehavior.opaque, excludeFromSemantics: true, onTap: () => widget.onSelect!(d)),
                 ),
               ),
           ],
