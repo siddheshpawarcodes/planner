@@ -6,7 +6,27 @@ new session should read this file first, then `planner-final-handoff/README.md`
 (the exact prototype logic). Everything decided so far is recorded here, so
 nothing needs to be re-derived.
 
-Last updated: 30 September 2026, day 2 (milestones 1 to 10 done, except the real wake-word spotter and the real Google Drive client, which both need keys from the user).
+Last updated: 30 September 2026, end of day 2. All ten milestones are built; what remains is on-device verification and the user's Porcupine files (see "Start here").
+
+---
+
+## 0. Start here (state at the end of day 2)
+
+**Code:** everything is committed on `main` (158 tests passing, analyzer clean). The last commits may not be on GitHub yet: run `git log --oneline origin/main..HEAD`; anything listed needs `git -c credential.helper= push origin main` (the user signs in as siddheshpawarcodes with a personal access token, see section 9).
+
+**Waiting on the user:**
+1. **Porcupine "Hey Planner"** (code done, not yet run for real). The user will: put their Picovoice AccessKey in `planner_app/config/secrets.json` (already created from the example and git-ignored; never paste the key into chat, and the assistant must not type it into files for them) and download the Android keyword from the Picovoice Console (Porcupine › "Hey Planner" › English › Android). When they say "done": find the download (usually a zip in `~/Downloads`), unzip it to `planner_app/assets/wake/hey_planner_android.ppn`, check the key is filled in without printing it (for example `python3 -c "import json;print(len(json.load(open('config/secrets.json'))['PICOVOICE_ACCESS_KEY']))"`), then `flutter run -d ZD222MDN6H --dart-define-from-file=config/secrets.json` and watch the log for `[wake]` lines. Say "Hey Planner" on Today.
+2. **iOS OAuth client for Drive:** deferred by the user; do not block on it.
+
+**To verify on the Motorola next time it is plugged in** (`adb devices` shows `ZD222MDN6H`):
+- **Google Drive (real, Android):** Settings › Backup › Google Drive › Connect. Expect Google's account picker and consent, then "Backed up just now". If it fails, read `[drive]` lines in the `flutter run` log. Cloud-side prerequisites: Drive API enabled; the account is a test user while the consent screen is in Testing; Android OAuth client = `com.planner.planner_app` + SHA-1 `EE:51:6E:0B:9D:5D:4A:A2:94:AF:95:6F:FD:33:D1:6C:77:B9:2B:2D` (this Mac's debug keystore; verified matching).
+- **Task alarms (new):** create a task a few minutes ahead; the alarm should ring at its start (alarm sound, repeating until dismissed). Settings › Notifications shows "Allow alarms to ring on time" until Android's "Alarms & reminders" is granted. Completing the task before its start must cancel the alarm.
+- **Notifications:** the permission prompt appears once, after onboarding (Settings › Delete all data re-runs onboarding on a device with demo data).
+- Orb reaction to the real microphone (not flat or maxed out) and haptics.
+
+**Device etiquette (precautions for driving the user's own phone):** check a screenshot before any adb tap; if another app, the notification shade or quick settings is open, stop and ask. Never touch system settings (Do Not Disturb was seen on; it was not changed by us). Don't repeat anything personal seen on screen. Screenshots: `adb -s ZD222MDN6H exec-out screencap -p > shot.png`.
+
+**Builds on the phone:** the installed build runs on the real clock and keeps its data (built without `PLANNER_SCENARIO`). Builds made with `--dart-define=PLANNER_SCENARIO=…` reset to demo data on every launch.
 
 ---
 
@@ -101,19 +121,27 @@ planner_app/
       database.dart            Drift tables: tasks, deadlines, series, kv (routine, settings, meta)
       repository.dart          PlannerRepository, DriftPlannerRepository, MemoryPlannerRepository (tests)
       planner_data.dart        PlannerData snapshot
-      settings.dart            Settings (theme, motion, today view, notifications, voice, backup, data)
+      settings.dart            Settings (theme, motion, today view, notifications, alarms, voice, backup, data)
+      snapshot.dart            PlannerSnapshot (the Export and Drive JSON document)
+      backup/                  drive_client (interface + stand-in), google_drive_client (Drive v3 appData),
+                               sync (SyncController state machine, conflict rule, status copy)
     features/
       today/                   today_model, today_header, timeline_strip, dial_view, today_page
       tasks/                   task_form, task_sheet, detail_sheet, decision_sheet
       plan/                    plan_board (WeekBoard), plan_page, upcoming
       voice/                   orb_painter (drawOrb port), planner_orb, speech, voice_controller, voice_overlay,
-                               wake_word (WakeWordEngine interface, foreground gate, WakeWordHost)
+                               wake_word (WakeWordEngine interface, foreground gate, WakeWordHost),
+                               porcupine_engine (Porcupine "Hey Planner", key via dart-define, .ppn asset)
+      keyboard/                shortcuts (KeyboardHost, "?" panel, ShortcutLegend)
+      notifications/           notification_service (NotificationService, LocalNotifications, task alarms)
+      offline/                 network (connectivity_plus → onlineProvider, auto-backup triggers)
       onboarding/              onboarding_page (steps, assembly, exit), onboarding_widgets (segments,
                                readout, ruler, 24h bar, commitment rows, Add your own, assembly rows)
       progress/                progress_page, ribbon (CategoryRibbon painter + geometry lerp), heatmap
                                (FocusHeatmap), review_page (six-stage weekly review, route /review)
       settings/                Routine section with Edit routine (live) + developer panel; rest is milestone 10
-    widgets/                   controls (Pressable, pills, chips, switch, segmented), task_block,
+    widgets/                   side_nav (tablet rail, desktop sidebar), task_focus (keyboard blocks),
+                               controls (Pressable, pills, chips, switch, segmented), task_block,
                                capacity_meter, bottom_nav, note_strip, planner_sheet, surfaces, icons
   test/
     flutter_test_config.dart   loads the real fonts so widget tests measure text like the device
@@ -133,12 +161,12 @@ planner_app/
 | 4 | TaskSheet and the placement sequence (plus DetailSheet) | **Done** | Widget tests; simulator (sheet, preview, placement window and scan). |
 | 5 | Plan board: three zooms, drag with ripple, scan, Upcoming | **Done** | Widget tests incl. a real long-press drag; simulator drag. |
 | 6 | Missed flow: DecisionSheet with hold and fly | **Done** | Widget tests; simulator. |
-| 7 | Voice: overlay, orb, STT, intents, wake word | **Done except two items** | Grammar: 13 tests. Flow: 4 widget tests with the demo voice. Wake word: gating, `WakeWordEngine` interface, debug "Say Hey Planner" and orb hover are done (2 widget tests with a fake spotter). **Open:** a real spotter (needs a key, section 10) and the first run on the Motorola with the real microphone (the phone was not connected on day 2). |
+| 7 | Voice: overlay, orb, STT, intents, wake word | **Done in code** | Grammar and flow tests; live microphone works on the Motorola (dictation mode, 3 s pause). Porcupine "Hey Planner" engine and gate built and tested; **first real run waits for the user's AccessKey and keyword file** (section 0). |
 | 8 | Onboarding with assembly | **Done** | 14 domain tests (ranges, cascade, ruler, steps, 3h 10m / 6h copy, routine reflow) and 4 widget tests (first launch end to end, ruler and no fixed hours, Add your own, Edit routine). iPhone simulator. |
 | 9 | Progress (ribbon, heatmap) and weekly review | **Done** | 8 domain tests (Sunday and Wednesday scenarios, heat, carried, copy) and 4 widget tests (empty state, day select and With work, all six review stages with keys and Plan next week, closing). Motorola and iPhone simulator. |
 | 10 | Settings, Drive, offline; tablet and desktop; accessibility and reduced-motion pass | **Done** except the real Google Drive client (needs OAuth ids): 10a Settings + notifications + export/delete, 10b Drive (stand-in client) + offline, 10c tablet/desktop + keyboard, 10d accessibility and reduced-motion pass | Notifications, snapshot, sync suites; Settings, layout/keyboard and accessibility widget tests (every screen at 1.3× with reduced motion; 44px targets, labels and contrast via Flutter's guidelines). Motorola (Settings, Export), iPhone and iPad simulators, desktop rendered at 1440 × 900. |
 
-Test count on day 2: 149 passing (`flutter test`), analyzer clean. **First Android run done on the Motorola** (Today, Progress, Settings render correctly).
+Test count at the end of day 2: 158 passing (`flutter test`), analyzer clean. **First Android run done on the Motorola** (Today, Progress, Settings render correctly).
 
 ---
 
@@ -215,24 +243,17 @@ All in `test/domain/scheduler_test.dart` and `test/app/*`:
 41. **Google Drive on Android is real** (`data/backup/google_drive_client.dart`): Drive v3 `appDataFolder` with the `drive.appdata` and `userinfo.email` scopes, via `google_sign_in` 7 **authorization only** (no `authenticate()`, which on Android would need a web `serverClientId`). It relies on the Android OAuth client for `com.planner.planner_app` with SHA-1 `EE:51:6E:0B:9D:5D:4A:A2:94:AF:95:6F:FD:33:D1:6C:77:B9:2B:2D`, which matches this Mac's debug keystore (release builds are signed with it too for now; a Play release needs its own SHA-1s registered). The Google Cloud project needs the Drive API enabled, and while the consent screen is in Testing the account must be a test user. iOS: stand-in in debug, "not available yet" in release (user decision: no iOS OAuth client for now).
 42. **Wake word is Porcupine** (`features/voice/porcupine_engine.dart`, behind `WakeWordEngine`). AccessKey: `--dart-define-from-file=config/secrets.json` (git-ignored; copy `config/secrets.example.json`). Keyword: `assets/wake/hey_planner_android.ppn` / `hey_planner_ios.ppn` (git-ignored). Without either, the wake phrase stays off and Settings says so. It arms only when the microphone is already allowed, stops before voice opens the mic, and re-arms 400 ms after voice closes. Porcupine's plugins declare compileSdk 31; the root `android/build.gradle.kts` lifts plugin libraries to 36.
 43. **Week starts on Monday** (user decision, 30 Sep): the row stays fixed at Monday.
+44. **Task alarms** (user request, 30 Sep): every upcoming task in the next 7 days (max 40) gets an alarm at its start, in addition to the 5-minute reminder; Settings › Notifications › Task alarms (default on). Android channel `planner_alarm`: alarm sound (`content://settings/system/alarm_alert`) on the alarm audio stream, FLAG_INSISTENT (repeats until dismissed). Scheduled with `AndroidScheduleMode.alarmClock` when `canScheduleExactNotifications()` is true (manifest declares `SCHEDULE_EXACT_ALARM`; the user grants "Alarms & reminders" from Settings' Allow row), otherwise inexact. There is no separate "delete on completion" code: `NotificationHost` cancels everything and schedules the current plan on every change, so done, skipped, deleted or moved tasks lose or move their alarm. No full-screen intent (it would need the app to show over the lock screen).
 
 ---
 
 ## 8. Backlog (what is left, in order)
 
-### Milestone 7 (finish)
-- Live microphone on the Motorola works (permission, partial and final transcripts, intents). Still to judge by eye: whether the orb looks flat or clipped with the −2…10 dB → 0..1 mapping, and haptics.
-- Real wake word: implement `WakeWordEngine` (for example Porcupine with a custom "Hey Planner" keyword) and override `wakeWordEngineProvider` in `main.dart`. Gating, the host widget and tests already exist. **Needs a decision and a key from the user** (section 10).
-
-### Milestone 10
-- **Real Google Drive client** (the only Drive piece left): implement `DriveClient` with `google_sign_in` + `googleapis` Drive v3 `appDataFolder` and override `driveClientProvider` in `main.dart`. **Needs from the user: Google Cloud OAuth client ids** (Android SHA-1 + package, iOS client id and reversed client id URL scheme).
-- "Week starts on" is shown as Monday but not yet selectable (Progress and the board assume Monday).
-
-### Also outstanding
-- Acceptance test from README 11 as one `integration_test` (onboard → voice → Move Flutter → complete early → missed → weekend → review).
-- Loading skeleton state for TaskBlock (only matters if data ever loads after the first frame; today it does not).
-- Hover states on desktop for blocks (+5% lift).
-- Android emulator: install a stable system image if an emulator is wanted.
+1. **On-device verification** listed in section 0 (Drive, task alarms, notifications prompt, orb levels, haptics), and the first real "Hey Planner" run once the user's Porcupine files exist.
+2. **Alarm actions (optional, offered to the user):** "Done" and "Snooze 5 min" buttons on the alarm notification (needs a background notification-response handler).
+3. **Acceptance test** from README 11 as one `integration_test` (onboard → voice → Move Flutter → complete early → missed → weekend → review).
+4. **Release readiness:** a release signing key (and its SHA-1 plus Google Play's app-signing SHA-1 registered for the Android OAuth client), app name and id confirmation, iOS OAuth client when the user wants Drive on iOS, and the iOS `hey_planner_ios.ppn`.
+5. Small polish: TaskBlock loading skeleton (only if data ever loads after the first frame), desktop hover lift (+5%) on blocks, an Android emulator with a stable image if wanted.
 
 ---
 
