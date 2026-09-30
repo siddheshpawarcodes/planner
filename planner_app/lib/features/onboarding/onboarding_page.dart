@@ -17,6 +17,7 @@ import '../../domain/layout.dart';
 import '../../domain/onboarding.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/icons.dart';
+import '../notifications/notification_service.dart';
 import '../voice/wake_word.dart';
 import 'onboarding_widgets.dart';
 
@@ -107,7 +108,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       ref.read(entrancePendingProvider.notifier).set(true);
       ref.read(todayUiProvider.notifier).set((u) => u.copyWith(dayOffset: 0, phase: DayPhase.inPlace));
       act.goTab(AppTab.today);
-      if (widget.edit) act.seq.at(40, () => act.note.say('Routine updated. Planner rebuilt your week around it.'));
+      if (widget.edit) {
+        act.seq.at(40, () => act.note.say('Routine updated. Planner rebuilt your week around it.'));
+      } else {
+        // First run: a calm moment to ask for notifications.
+        act.seq.at(1200, () => ref.read(notificationServiceProvider).requestPermission());
+      }
     });
   }
 

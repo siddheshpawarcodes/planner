@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/notifications/notification_service.dart';
 import '../features/voice/planner_orb.dart';
 import '../features/voice/voice_controller.dart';
 import '../features/voice/voice_overlay.dart';
@@ -71,42 +72,44 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Scaffold(
       backgroundColor: c.bg,
       resizeToAvoidBottomInset: false,
-      body: WakeWordHost(
-        child: AppEntrance(
-          child: Stack(children: [
-            Positioned(
-              top: mq.padding.top,
-              left: 0,
-              right: 0,
-              bottom: kNavHeight + bottom,
-              child: widget.shell,
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                color: c.bg,
-                padding: EdgeInsets.only(bottom: bottom),
-                child: BottomNav(
-                  tab: _tab,
-                  onTab: _onTab,
-                  planBump: bump,
-                  showHey: ref.watch(showHeyCaptionProvider),
+      body: NotificationHost(
+        child: WakeWordHost(
+          child: AppEntrance(
+            child: Stack(children: [
+              Positioned(
+                top: mq.padding.top,
+                left: 0,
+                right: 0,
+                bottom: kNavHeight + bottom,
+                child: widget.shell,
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  color: c.bg,
+                  padding: EdgeInsets.only(bottom: bottom),
+                  child: BottomNav(
+                    tab: _tab,
+                    onTab: _onTab,
+                    planBump: bump,
+                    showHey: ref.watch(showHeyCaptionProvider),
+                  ),
                 ),
               ),
-            ),
-            // Prototype z-order: veil 20, orb 30, sheets 50, note 55.
-            const Positioned.fill(child: VoiceOverlay()),
-            _OrbLayer(core: _coreColor()),
-            const Positioned.fill(child: SheetHost()),
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: (inSettings ? 24 : 96) + bottom,
-              child: const NoteStrip(),
-            ),
-          ]),
+              // Prototype z-order: veil 20, orb 30, sheets 50, note 55.
+              const Positioned.fill(child: VoiceOverlay()),
+              _OrbLayer(core: _coreColor()),
+              const Positioned.fill(child: SheetHost()),
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: (inSettings ? 24 : 96) + bottom,
+                child: const NoteStrip(),
+              ),
+            ]),
+          ),
         ),
       ),
     );

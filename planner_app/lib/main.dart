@@ -9,6 +9,7 @@ import 'app/state/store.dart';
 import 'data/database.dart';
 import 'data/repository.dart';
 import 'domain/time.dart';
+import 'features/notifications/notification_service.dart';
 
 /// Debug: `--dart-define=PLANNER_SCENARIO=wed` starts at a journey step.
 const _scenario = String.fromEnvironment('PLANNER_SCENARIO');
@@ -37,6 +38,7 @@ Future<void> main() async {
   final container = ProviderContainer(overrides: [
     repositoryProvider.overrideWithValue(repo),
     initialDataProvider.overrideWithValue(data),
+    notificationServiceProvider.overrideWithValue(LocalNotifications()),
   ]);
   if (pinned != null) container.read(clockProvider.notifier).pin(pinned);
   runApp(UncontrolledProviderScope(container: container, child: const PlannerApp()));

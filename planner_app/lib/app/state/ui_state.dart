@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/settings.dart';
 import '../../domain/category.dart';
+import 'store.dart';
 
 enum AppTab { today, plan, progress, settings }
 
@@ -49,8 +50,9 @@ class TodayUi {
 const Object _unset = Object();
 
 class TodayUiController extends Notifier<TodayUi> {
+  /// Settings › Today opens as.
   @override
-  TodayUi build() => const TodayUi();
+  TodayUi build() => TodayUi(view: ref.read(plannerStoreProvider).settings.todayView);
   void set(TodayUi Function(TodayUi s) f) => state = f(state);
 }
 
@@ -79,7 +81,15 @@ final planUiProvider = NotifierProvider<PlanUiController, PlanUi>(PlanUiControll
 class CurrentTabController extends Notifier<AppTab> {
   @override
   AppTab build() => AppTab.today;
-  void set(AppTab t) => state = t;
+  AppTab _lastMain = AppTab.today;
+
+  /// The tab Settings closes back to.
+  AppTab get lastMain => _lastMain;
+
+  void set(AppTab t) {
+    if (t != AppTab.settings) _lastMain = t;
+    state = t;
+  }
 }
 
 final currentTabProvider = NotifierProvider<CurrentTabController, AppTab>(CurrentTabController.new);

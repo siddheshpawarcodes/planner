@@ -1,7 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/planner_data.dart';
+import '../../data/snapshot.dart';
 import '../../domain/routine.dart';
 import '../../domain/capacity.dart';
 import '../../domain/progress.dart';
@@ -74,6 +79,41 @@ class PlannerActions {
     setSeg(PlanSeg.upcoming);
     goTab(AppTab.plan);
     seq.at(300 * m, () => note.say(planNextNote(p.carried.length, ahead)));
+  }
+
+  /// Settings › close (the X, or the settings icon again).
+  void closeSettings() => goTab(ref.read(currentTabProvider.notifier).lastMain);
+
+  /// Settings › Export as JSON: writes the snapshot and opens the share
+  /// sheet (Files, Downloads, Drive…). Returns the file name.
+  Future<String?> exportJson() async {
+    final d = dateOf(today);
+    final name = 'planner-${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}.json';
+    try {
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/$name');
+      await file.writeAsString(PlannerSnapshot.of(data).encode());
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path, mimeType: 'application/json')], subject: name));
+      note.say('Exported $name.');
+      return name;
+    } catch (_) {
+      note.say('Couldn’t export. Nothing was changed.');
+      return null;
+    }
+  }
+
+  /// Settings › Delete all data (second tap): erases the plan and returns to
+  /// onboarding.
+  Future<void> deleteAllData() async {
+    seq.clear();
+    staging.reset();
+    closeSheet();
+    final fresh = PlannerData(installedDay: today, deviceId: data.deviceId);
+    if (!await store.replaceAll(fresh)) {
+      note.say('Not deleted. Nothing was changed.');
+      return;
+    }
+    ref.read(routerProvider).go(onboardingPath);
   }
 
   /// Settings › Edit routine: re-runs onboarding prefilled.
