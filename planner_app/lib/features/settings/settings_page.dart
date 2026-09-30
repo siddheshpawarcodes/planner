@@ -31,6 +31,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   late final AppLifecycleListener _life;
   PermissionStatus? _mic;
   bool? _notify;
+  bool _exact = true;
 
   /// "Delete all data" is armed by the first tap for 4 seconds.
   bool _armed = false;
@@ -51,16 +52,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Future<void> _refresh() async {
     PermissionStatus? mic;
     bool? notify;
+    var exact = true;
     try {
       mic = await Permission.microphone.status;
     } catch (_) {}
     try {
       notify = await ref.read(notificationServiceProvider).granted();
+      exact = await ref.read(notificationServiceProvider).canAlarmExactly();
     } catch (_) {}
     if (mounted) {
       setState(() {
         _mic = mic;
         _notify = notify;
+        _exact = exact;
       });
     }
   }
@@ -193,6 +197,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         toggle('Next task', '5 minutes before it starts', s.notifyNext, (v) => _set((x) => x.copyWith(notifyNext: v))),
         toggle('Missed tasks', 'One gentle check-in, never a pile-up', s.notifyMissed,
             (v) => _set((x) => x.copyWith(notifyMissed: v))),
+        toggle('Task alarms', 'Rings when each task starts. Completing or moving a task updates it.', s.taskAlarms,
+            (v) => _set((x) => x.copyWith(taskAlarms: v))),
+        if (s.taskAlarms && !_exact)
+          row(
+            'Allow alarms to ring on time',
+            SecondaryPill(
+              label: 'Allow',
+              height: 32,
+              padding: 12,
+              onTap: () async {
+                await ref.read(notificationServiceProvider).allowExactAlarms();
+                await _refresh();
+              },
+            ),
+            min: 48,
+          ),
         toggle('Weekly review', 'Sunday at 21:00', s.notifyReview, (v) => _set((x) => x.copyWith(notifyReview: v))),
         if (_notify == false)
           row(

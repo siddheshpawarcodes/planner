@@ -14,6 +14,7 @@ class Settings {
     this.notifyNext = true,
     this.notifyMissed = true,
     this.notifyReview = true,
+    this.taskAlarms = true,
     this.wakeWord = true,
     this.language = 'English (UK)',
     this.autoBackup = true,
@@ -25,6 +26,9 @@ class Settings {
   final MotionChoice motion;
   final TodayView todayView;
   final bool notifyNext, notifyMissed, notifyReview;
+
+  /// An alarm that rings at each task's start (cancelled when it's done).
+  final bool taskAlarms;
   final bool wakeWord;
   final String language;
   final bool autoBackup;
@@ -45,6 +49,7 @@ class Settings {
     bool? notifyNext,
     bool? notifyMissed,
     bool? notifyReview,
+    bool? taskAlarms,
     bool? wakeWord,
     String? language,
     bool? autoBackup,
@@ -58,6 +63,7 @@ class Settings {
         notifyNext: notifyNext ?? this.notifyNext,
         notifyMissed: notifyMissed ?? this.notifyMissed,
         notifyReview: notifyReview ?? this.notifyReview,
+        taskAlarms: taskAlarms ?? this.taskAlarms,
         wakeWord: wakeWord ?? this.wakeWord,
         language: language ?? this.language,
         autoBackup: autoBackup ?? this.autoBackup,
@@ -72,6 +78,7 @@ class Settings {
         'notifyNext': notifyNext,
         'notifyMissed': notifyMissed,
         'notifyReview': notifyReview,
+        'taskAlarms': taskAlarms,
         'wakeWord': wakeWord,
         'language': language,
         'autoBackup': autoBackup,
@@ -89,6 +96,7 @@ class Settings {
         notifyNext: j['notifyNext'] as bool? ?? true,
         notifyMissed: j['notifyMissed'] as bool? ?? true,
         notifyReview: j['notifyReview'] as bool? ?? true,
+        taskAlarms: j['taskAlarms'] as bool? ?? true,
         wakeWord: j['wakeWord'] as bool? ?? true,
         language: j['language'] as String? ?? 'English (UK)',
         autoBackup: j['autoBackup'] as bool? ?? true,

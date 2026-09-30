@@ -33,8 +33,29 @@ void main() {
   test('weekly review on Sunday 21:00, and every kind can be switched off', () {
     final r = planNotifications(tasks: tasks, now: now).where((x) => x.kind == NoteKind.review).single;
     expect(r.at, DateTime(2026, 10, 4, 21));
-    expect(planNotifications(tasks: tasks, now: now, nextTask: false, missed: false, review: false), isEmpty);
+    expect(planNotifications(tasks: tasks, now: now, nextTask: false, alarms: false, missed: false, review: false),
+        isEmpty);
     final late = planNotifications(tasks: const [], now: DateTime(2026, 10, 4, 21, 30));
     expect(late.single.at, DateTime(2026, 10, 11, 21));
+  });
+
+  test('task alarms ring at each start, and go away when a task is done or moves', () {
+    List<PlannedNote> alarms(List<Task> t) =>
+        planNotifications(tasks: t, now: now).where((x) => x.kind == NoteKind.alarm).toList();
+    final a = alarms(tasks);
+    expect(a.map((x) => (x.title, x.at)), [
+      ('Study polity', DateTime(2026, 9, 30, 20)),
+      ('Exercise', DateTime(2026, 9, 30, 22, 15)),
+    ]);
+    expect(a.first.body, 'Time to start: 20:00 → 22:00.');
+    // Completed: its alarm is gone the next time the plan is scheduled.
+    final done = [for (final t in tasks) t.id == 'a' ? t.copyWith(done: true) : t];
+    expect(alarms(done).map((x) => x.title), ['Exercise']);
+    // Skipped or deleted: gone too.
+    expect(alarms([for (final t in tasks) t.id == 'b' ? t.copyWith(skipped: true) : t]).map((x) => x.title),
+        ['Study polity']);
+    // Moved: the alarm moves with it.
+    final moved = [for (final t in tasks) t.id == 'b' ? t.copyWith(day: thu, start: 1200, end: 1245) : t];
+    expect(alarms(moved).last.at, DateTime(2026, 10, 1, 20));
   });
 }

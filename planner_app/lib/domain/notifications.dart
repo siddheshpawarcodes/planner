@@ -1,7 +1,7 @@
 import 'task.dart';
 import 'time.dart';
 
-enum NoteKind { nextTask, missed, review }
+enum NoteKind { nextTask, alarm, missed, review }
 
 /// One local notification Planner wants scheduled.
 class PlannedNote {
@@ -20,11 +20,16 @@ class PlannedNote {
 /// - **Missed tasks**, one gentle check-in per day, 15 minutes after the
 ///   day's last open task should have ended (never a pile-up). Completing
 ///   the tasks re-plans it away.
+/// - **Task alarm**, ringing at each upcoming task's start.
 /// - **Weekly review**, Sunday 21:00.
+///
+/// Completing, skipping, deleting or moving a task changes the plan, so its
+/// alarm and reminder go away or move with it.
 List<PlannedNote> planNotifications({
   required List<Task> tasks,
   required DateTime now,
   bool nextTask = true,
+  bool alarms = true,
   bool missed = true,
   bool review = true,
   int horizonDays = 7,
@@ -44,6 +49,16 @@ List<PlannedNote> planNotifications({
       if (!when.isAfter(now)) continue;
       out.add(PlannedNote(1000 + n, NoteKind.nextTask, when, t.title,
           'Starts in 5 minutes, ${fmt(t.start!)} → ${fmt(t.end!)}.'));
+      if (++n >= maxNext) break;
+    }
+  }
+
+  if (alarms) {
+    var n = 0;
+    for (final t in live) {
+      final when = at(t.day!, t.start!);
+      if (!when.isAfter(now)) continue;
+      out.add(PlannedNote(4000 + n, NoteKind.alarm, when, t.title, 'Time to start: ${fmt(t.start!)} → ${fmt(t.end!)}.'));
       if (++n >= maxNext) break;
     }
   }

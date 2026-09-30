@@ -21,6 +21,13 @@ abstract class NotificationService {
   Future<bool?> granted();
   Future<bool> requestPermission();
 
+  /// Whether alarms can ring at the exact minute (Android "Alarms &
+  /// reminders"). Without it they still fire, a little late when dozing.
+  Future<bool> canAlarmExactly();
+
+  /// Opens the system screen that allows exact alarms.
+  Future<void> allowExactAlarms();
+
   /// Replaces everything scheduled with [notes].
   Future<void> replace(List<PlannedNote> notes);
 }
@@ -28,7 +35,7 @@ abstract class NotificationService {
 class NoNotifications implements NotificationService {
   NoNotifications();
   final scheduled = <PlannedNote>[];
-  bool allowed = true;
+  bool allowed = true, exact = true;
 
   @override
   Future<void> init() async {}
@@ -37,14 +44,18 @@ class NoNotifications implements NotificationService {
   @override
   Future<bool> requestPermission() async => allowed;
   @override
+  Future<bool> canAlarmExactly() async => exact;
+  @override
+  Future<void> allowExactAlarms() async => exact = true;
+  @override
   Future<void> replace(List<PlannedNote> notes) async => scheduled
     ..clear()
     ..addAll(notes);
 }
 
-/// `flutter_local_notifications` on Android and iOS. Scheduling is inexact
-/// (no exact-alarm permission), so "5 minutes before" can drift a little
-/// when the phone is dozing.
+/// `flutter_local_notifications` on Android and iOS. Reminders are inexact
+/// (they can drift a little when the phone is dozing); task alarms use
+/// Android's alarm-clock scheduling when exact alarms are allowed.
 class LocalNotifications implements NotificationService {
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _ready = false;
@@ -58,6 +69,26 @@ class LocalNotifications implements NotificationService {
       priority: Priority.defaultPriority,
     ),
     iOS: DarwinNotificationDetails(),
+  );
+
+  /// Task alarms: the alarm sound on the alarm stream, repeating until
+  /// dismissed (FLAG_INSISTENT), like an alarm clock.
+  static final _alarm = NotificationDetails(
+    android: AndroidNotificationDetails(
+      'planner_alarm',
+      'Task alarms',
+      channelDescription: 'Rings when a task is due to start',
+      importance: Importance.max,
+      priority: Priority.max,
+      category: AndroidNotificationCategory.alarm,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      sound: const UriAndroidNotificationSound('content://settings/system/alarm_alert'),
+      playSound: true,
+      enableVibration: true,
+      additionalFlags: Int32List.fromList(const [4]),
+      visibility: NotificationVisibility.public,
+    ),
+    iOS: const DarwinNotificationDetails(presentSound: true, presentBanner: true),
   );
 
   AndroidFlutterLocalNotificationsPlugin? get _android =>
@@ -105,15 +136,31 @@ class LocalNotifications implements NotificationService {
   }
 
   @override
+  Future<bool> canAlarmExactly() async {
+    await init();
+    if (_android == null) return true;
+    return await _android!.canScheduleExactNotifications() ?? false;
+  }
+
+  @override
+  Future<void> allowExactAlarms() async {
+    await init();
+    await _android?.requestExactAlarmsPermission();
+  }
+
+  @override
   Future<void> replace(List<PlannedNote> notes) async {
     await init();
     await _plugin.cancelAllPendingNotifications();
+    final exact = await canAlarmExactly();
     for (final n in notes) {
+      final alarm = n.kind == NoteKind.alarm;
       await _plugin.zonedSchedule(
         id: n.id,
         scheduledDate: tz.TZDateTime.from(n.at, tz.local),
-        notificationDetails: _details,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        notificationDetails: alarm ? _alarm : _details,
+        androidScheduleMode:
+            alarm && exact ? AndroidScheduleMode.alarmClock : AndroidScheduleMode.inexactAllowWhileIdle,
         title: n.title,
         body: n.body,
       );
@@ -135,6 +182,7 @@ final plannedNotesProvider = Provider<List<PlannedNote>>((ref) {
     tasks: ref.watch(tasksProvider),
     now: DateTime.now(),
     nextTask: s.notifyNext,
+    alarms: s.taskAlarms,
     missed: s.notifyMissed,
     review: s.notifyReview,
   );
