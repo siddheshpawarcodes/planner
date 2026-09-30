@@ -538,3 +538,39 @@ RescheduleResult rescheduleUnfinished(List<Task> all, Routine r,
 /// "Mark not done": restores the planned end.
 Task uncompleteTask(Task t) => t.copyWith(
     done: false, end: t.plannedEnd ?? t.end, plannedEnd: null, doneAt: null);
+
+/// After a routine change ("Planner rebuilt your week around it"): from
+/// [today] on, every undone task that has not started keeps its start if it
+/// is still free, otherwise slides to the earliest free start after it
+/// (never before wake or into fixed or protected time; a kept overflow may
+/// stay in wind-down). Done and already-started tasks stay put. Unchanged
+/// tasks are returned as the same instances.
+List<Task> reflowForRoutine(List<Task> all, Routine r, int today, num now) {
+  bool pinned(Task t) => t.done || (t.day == today && t.start! < now);
+  final days = stableSorted(
+      {for (final t in all) if (t.isLive && !pinned(t) && t.day! >= today) t.day!}.toList(),
+      (a, b) => a - b);
+  final upd = <String, (int, int)>{};
+  for (final day in days) {
+    final occ = <Interval>[(0, r.wake), ...busyOf(day, r, const [], allowWindDown: true)];
+    for (final x in all) {
+      if (x.day == day && x.isLive && pinned(x)) {
+        final len = x.end! - x.start!;
+        occ.add((x.start!, x.end! + (len >= 120 ? 15 : 0)));
+      }
+    }
+    final movable = stableSorted(
+        all.where((x) => x.day == day && x.isLive && !pinned(x)), (a, b) => a.start! - b.start!);
+    for (final o in movable) {
+      final od = o.end! - o.start!;
+      final ns = earliestFree(occ, o.start!, od, 99999)!;
+      if (ns != o.start) upd[o.id] = (ns, ns + od);
+      occ.add((ns, ns + od + (od >= 120 ? 15 : 0)));
+    }
+  }
+  if (upd.isEmpty) return all;
+  return [
+    for (final x in all)
+      if (upd[x.id] case (final s, final e)) x.copyWith(start: s, end: e) else x
+  ];
+}

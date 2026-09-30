@@ -29,9 +29,8 @@ Future<void> main() async {
     }
   }
   if (data.installedDay == null) {
-    // First launch. Onboarding (milestone 8) will set the routine; until
-    // then the default routine is used.
-    data = data.copyWith(installedDay: dayOf(DateTime.now()), onboarded: true);
+    // First launch: the router opens onboarding, which sets the routine.
+    data = data.copyWith(installedDay: dayOf(DateTime.now()));
     await repo.putMeta(metaOf(data));
   }
 

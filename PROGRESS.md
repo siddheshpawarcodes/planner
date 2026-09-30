@@ -6,7 +6,7 @@ new session should read this file first, then `planner-final-handoff/README.md`
 (the exact prototype logic). Everything decided so far is recorded here, so
 nothing needs to be re-derived.
 
-Last updated: 29 September 2026, end of day 1 (milestones 1 to 6 done, milestone 7 mostly done).
+Last updated: 30 September 2026, day 2 (milestones 1 to 6 and 8 done; milestone 7 done except the real spotter and the Android run).
 
 ---
 
@@ -95,6 +95,7 @@ planner_app/
                                reschedule options, preview slot, fit in, reschedule unfinished, complete
       series.dart              materializeSeries (28-day horizon), endSeries
       intents.dart             voice grammar (parseUtterance) and resolver (resolveIntent)
+      onboarding.dart          OnboardingDraft (ranges, cascade, ruler snap, steps), rhythmCopy
     data/
       database.dart            Drift tables: tasks, deadlines, series, kv (routine, settings, meta)
       repository.dart          PlannerRepository, DriftPlannerRepository, MemoryPlannerRepository (tests)
@@ -104,9 +105,12 @@ planner_app/
       today/                   today_model, today_header, timeline_strip, dial_view, today_page
       tasks/                   task_form, task_sheet, detail_sheet, decision_sheet
       plan/                    plan_board (WeekBoard), plan_page, upcoming
-      voice/                   orb_painter (drawOrb port), planner_orb, speech, voice_controller, voice_overlay
+      voice/                   orb_painter (drawOrb port), planner_orb, speech, voice_controller, voice_overlay,
+                               wake_word (WakeWordEngine interface, foreground gate, WakeWordHost)
+      onboarding/              onboarding_page (steps, assembly, exit), onboarding_widgets (segments,
+                               readout, ruler, 24h bar, commitment rows, Add your own, assembly rows)
       progress/                placeholder (milestone 9)
-      settings/                placeholder page holding the developer panel (milestone 10)
+      settings/                Routine section with Edit routine (live) + developer panel; rest is milestone 10
     widgets/                   controls (Pressable, pills, chips, switch, segmented), task_block,
                                capacity_meter, bottom_nav, note_strip, planner_sheet, surfaces, icons
   test/
@@ -127,12 +131,12 @@ planner_app/
 | 4 | TaskSheet and the placement sequence (plus DetailSheet) | **Done** | Widget tests; simulator (sheet, preview, placement window and scan). |
 | 5 | Plan board: three zooms, drag with ripple, scan, Upcoming | **Done** | Widget tests incl. a real long-press drag; simulator drag. |
 | 6 | Missed flow: DecisionSheet with hold and fly | **Done** | Widget tests; simulator. |
-| 7 | Voice: overlay, orb, STT, intents, wake word | **Mostly done** | Grammar: 13 tests (all nine demo lines). Flow: 4 widget tests end to end with the demo voice. Not yet run on Android: the first Motorola build (`flutter run -d ZD222MDN6H`) was stopped before it finished, so nothing has been verified on a real Android device yet, including the real microphone. Wake word not done (needs a key). |
-| 8 | Onboarding with assembly | Not started | |
+| 7 | Voice: overlay, orb, STT, intents, wake word | **Done except two items** | Grammar: 13 tests. Flow: 4 widget tests with the demo voice. Wake word: gating, `WakeWordEngine` interface, debug "Say Hey Planner" and orb hover are done (2 widget tests with a fake spotter). **Open:** a real spotter (needs a key, section 10) and the first run on the Motorola with the real microphone (the phone was not connected on day 2). |
+| 8 | Onboarding with assembly | **Done** | 14 domain tests (ranges, cascade, ruler, steps, 3h 10m / 6h copy, routine reflow) and 4 widget tests (first launch end to end, ruler and no fixed hours, Add your own, Edit routine). iPhone simulator. |
 | 9 | Progress (ribbon, heatmap) and weekly review | Not started (placeholder page) | |
 | 10 | Settings, Drive, offline; tablet and desktop; accessibility and reduced-motion pass | Not started (dev panel only) | |
 
-Test count at end of day 1: 83 passing (`flutter test`), analyzer clean.
+Test count on day 2: 103 passing (`flutter test`), analyzer clean.
 
 ---
 
@@ -183,20 +187,19 @@ All in `test/domain/scheduler_test.dart` and `test/app/*`:
 15. **TaskBlock tall/short** is decided from the laid-out height, not the target height, so blocks growing during placement never overflow.
 16. **Debug tooling** (scenarios, developer panel, demo voice, clock pinning) exists only in debug builds (`kDebugMode`).
 17. **Git author:** see section 9.
+18. **Wake word gate:** armed only when Settings › Voice is on, Today is the current tab, the app is resumed, no sheet is open, nothing covers the shell (`shellCoveredProvider`, set by onboarding and later the review) and voice is idle. `WakeWordHost` starts and stops the engine on every change. Until a real spotter exists, `NoWakeWordEngine` is used and the HEY PLANNER caption shows only in debug builds.
+19. **Onboarding commits at "Build my rhythm"** (routine, `onboarded`), not at "Open Today", so the assembly only explains saved state. New installs are no longer auto-marked onboarded; the router's initial location is `/onboarding` until they are.
+20. **Edit routine refits the week:** the prototype only swapped the routine. Here `reflowForRoutine` moves every undone task from today on that has not started and now overlaps fixed or protected time (or sits before wake) to the earliest free start after it, like the ripple pass. Done, started and unscheduled tasks never move; a kept overflow may stay in wind-down. This backs up the copy "Planner rebuilt your week around it."
+21. **Edit routine has a close button** (top right, "Close, keep the current routine"); the prototype had no way out. System back goes to the previous question, or closes at question 1 when editing.
+22. **The assembly builds the first weekday on or after today** (the prototype always used its Tuesday), and the weekend copy uses the first Saturday. The 24h bar also draws the first weekday.
 
 ---
 
 ## 8. Backlog (what is left, in order)
 
 ### Milestone 7 (finish)
-- Run on the Motorola with the real microphone: permission prompt, partial transcript, sound level driving the orb, final result → intent. Tune `DeviceSpeech` level mapping (−2…10 dB → 0..1) if the orb looks flat or clipped.
-- Wake word "Hey Planner": foreground only (Today visible, app resumed, no sheet, review or settings, voice idle; stop on pause or route change). **Needs a decision from the user**: Porcupine (Picovoice) access key and a custom "Hey Planner" keyword file, or another on-device spotter. Build a `WakeWordEngine` interface with gating now; until a key exists, show the HEY PLANNER caption only in debug and keep tap-to-talk.
-- Debug "Say Hey Planner" button in the developer panel that respects the same gating (note: "“Hey Planner” works only while Today is open on screen.").
-- Orb hover state on desktop and web (amp .16).
-- First Android run on the Motorola: `flutter run -d ZD222MDN6H --dart-define=PLANNER_SCENARIO=tue` (the first Gradle build is slow on this Mac; let it finish), then check layout, haptics and voice.
-
-### Milestone 8: Onboarding (README 6.1)
-Five questions with progress segments, time input (Geist 300 88 readout, −/+ 15 buttons, draggable ruler 2 px/min with 15-min ticks and 5-min snap, live region), the live 24h bar, commitments with Add your own, assembly (items rise 14px on Spring, 240ms apart) and "Your rhythm is ready." with the realistic-time copy, then the Settle transition to Today. Route `/onboarding` outside the shell; first launch goes there (currently `main.dart` marks new installs onboarded with the default routine). "Edit routine" in Settings re-runs it prefilled and ends with "Routine updated. Planner rebuilt your week around it." Prototype reference: `obKey`, `obRange`, `obSet`, ruler handlers, `obNext`, `openApp`, `editRoutine`, `cuAdd` in `prototype-logic.js`.
+- First Android run on the Motorola (it was not connected on day 2): `flutter run -d ZD222MDN6H --dart-define=PLANNER_SCENARIO=tue` (the first Gradle build is slow on this Mac; let it finish), then check layout, haptics and voice with the real microphone: permission prompt, partial transcript, sound level driving the orb, final result → intent. Tune `DeviceSpeech` level mapping (−2…10 dB → 0..1) if the orb looks flat or clipped. Also walk the new onboarding there.
+- Real wake word: implement `WakeWordEngine` (for example Porcupine with a custom "Hey Planner" keyword) and override `wakeWordEngineProvider` in `main.dart`. Gating, the host widget and tests already exist. **Needs a decision and a key from the user** (section 10).
 
 ### Milestone 9: Progress and weekly review (README 6.8, 6.9)
 Pure aggregates in `domain/progress.dart` (per-category completed hours per day, planned envelope, stats, heatmap from actual completion times, best window). CategoryRibbon CustomPainter (streamgraph, horizontal-tangent cubics, 1px bg separators, dashed envelope, left-to-right clip reveal 1400), day cursor and breakdown, count-up 1500 ease-out cubic, three stats, the moved cells, FocusHeatmap (7 × 36, 0/.18/.36/.62/1, diagonal 11ms stagger, bracket on the best window), Review button on Sunday evening. Weekly review: six staged screens with tap left/right, arrow keys, progress segments, the copy in README 6.9, "Plan next week" → Plan › Upcoming. Prototype reference: `WMOCK`, `WENV`, `HEATF`, the progress and review parts of `renderVals`.

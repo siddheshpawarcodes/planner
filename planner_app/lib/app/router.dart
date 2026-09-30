@@ -1,12 +1,16 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/onboarding/onboarding_page.dart';
 import '../features/plan/plan_page.dart';
 import '../features/progress/progress_page.dart';
 import '../features/settings/settings_page.dart';
 import '../features/today/today_page.dart';
 import 'shell.dart';
+import 'state/store.dart';
 import 'state/ui_state.dart';
+import 'theme/planner_theme.dart';
 
 String tabPath(AppTab t) => switch (t) {
       AppTab.today => '/today',
@@ -15,10 +19,28 @@ String tabPath(AppTab t) => switch (t) {
       AppTab.settings => '/settings',
     };
 
+/// Onboarding sits outside the shell. First launch opens it; Settings ›
+/// Edit routine pushes it prefilled (`/onboarding?edit=1`).
+const onboardingPath = '/onboarding';
+
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
-    initialLocation: '/today',
+    initialLocation: ref.read(plannerStoreProvider).onboarded ? '/today' : onboardingPath,
     routes: [
+      GoRoute(
+        path: onboardingPath,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: OnboardingPage(edit: state.uri.queryParameters['edit'] == '1'),
+          transitionDuration: const Duration(milliseconds: 420),
+          // Leaving, onboarding runs its own scale-and-blur exit first.
+          reverseTransitionDuration: Duration.zero,
+          transitionsBuilder: (context, a, _, child) => PlannerMotion.reduced(context)
+              ? child
+              : FadeTransition(
+                  opacity: CurvedAnimation(parent: a, curve: PlannerMotion.settleCurve), child: child),
+        ),
+      ),
       StatefulShellRoute(
         builder: (context, state, shell) => AppShell(shell: shell),
         navigatorContainerBuilder: (context, shell, children) =>

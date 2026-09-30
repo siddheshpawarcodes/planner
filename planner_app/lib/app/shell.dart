@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../features/voice/planner_orb.dart';
 import '../features/voice/voice_controller.dart';
 import '../features/voice/voice_overlay.dart';
+import '../features/voice/wake_word.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/note_strip.dart';
 import '../widgets/planner_sheet.dart';
@@ -65,46 +66,49 @@ class _AppShellState extends ConsumerState<AppShell> {
     final mq = MediaQuery.of(context);
     final navBump = ref.watch(stagingProvider.select((s) => s.navBump));
     final bump = navBump > 0 && DateTime.now().millisecondsSinceEpoch - navBump < 700;
-    final wake = ref.watch(settingsProvider.select((s) => s.wakeWord));
     final bottom = mq.padding.bottom;
     final inSettings = _tab == AppTab.settings;
     return Scaffold(
       backgroundColor: c.bg,
       resizeToAvoidBottomInset: false,
-      body: Stack(children: [
-        Positioned(
-          top: mq.padding.top,
-          left: 0,
-          right: 0,
-          bottom: kNavHeight + bottom,
-          child: widget.shell,
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Container(
-            color: c.bg,
-            padding: EdgeInsets.only(bottom: bottom),
-            child: BottomNav(
-              tab: _tab,
-              onTab: _onTab,
-              planBump: bump,
-              showHey: _tab == AppTab.today && wake && !ref.watch(voiceControllerProvider.select((v) => v.open)),
+      body: WakeWordHost(
+        child: AppEntrance(
+          child: Stack(children: [
+            Positioned(
+              top: mq.padding.top,
+              left: 0,
+              right: 0,
+              bottom: kNavHeight + bottom,
+              child: widget.shell,
             ),
-          ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                color: c.bg,
+                padding: EdgeInsets.only(bottom: bottom),
+                child: BottomNav(
+                  tab: _tab,
+                  onTab: _onTab,
+                  planBump: bump,
+                  showHey: ref.watch(showHeyCaptionProvider),
+                ),
+              ),
+            ),
+            // Prototype z-order: veil 20, orb 30, sheets 50, note 55.
+            const Positioned.fill(child: VoiceOverlay()),
+            _OrbLayer(core: _coreColor()),
+            const Positioned.fill(child: SheetHost()),
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: (inSettings ? 24 : 96) + bottom,
+              child: const NoteStrip(),
+            ),
+          ]),
         ),
-        // Prototype z-order: veil 20, orb 30, sheets 50, note 55.
-        const Positioned.fill(child: VoiceOverlay()),
-        _OrbLayer(core: _coreColor()),
-        const Positioned.fill(child: SheetHost()),
-        Positioned(
-          left: 16,
-          right: 16,
-          bottom: (inSettings ? 24 : 96) + bottom,
-          child: const NoteStrip(),
-        ),
-      ]),
+      ),
     );
   }
 
@@ -213,12 +217,20 @@ class _Pane extends StatelessWidget {
 /// The Planner Orb: docked in the nav at 0.42, it rises to the upper centre
 /// at 1.1 over 760ms Cubic(.34, 1.22, .5, 1) when voice opens. Tapping it
 /// works anywhere in the app.
-class _OrbLayer extends ConsumerWidget {
+class _OrbLayer extends ConsumerStatefulWidget {
   const _OrbLayer({required this.core});
   final Color? core;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_OrbLayer> createState() => _OrbLayerState();
+}
+
+class _OrbLayerState extends ConsumerState<_OrbLayer> {
+  /// Desktop and web: the docked orb livens up under the pointer (amp .16).
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
     final v = ref.watch(voiceControllerProvider);
     final level = ref.watch(orbLevelProvider);
     final mq = MediaQuery.of(context);
@@ -244,7 +256,8 @@ class _OrbLayer extends ConsumerWidget {
           },
           child: PlannerOrb(
             state: v.phase,
-            core: core,
+            core: widget.core,
+            hover: _hover && !v.open,
             level: level,
             speaking: v.speaking,
             controller: ref.watch(orbControllerProvider),
@@ -261,13 +274,84 @@ class _OrbLayer extends ConsumerWidget {
               button: true,
               label: 'Talk to Planner',
               onTap: ref.read(voiceControllerProvider.notifier).tapOrb,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: ref.read(voiceControllerProvider.notifier).tapOrb,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                onEnter: (_) => setState(() => _hover = true),
+                onExit: (_) => setState(() => _hover = false),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: ref.read(voiceControllerProvider.notifier).tapOrb,
+                ),
               ),
             ),
           ),
       ]),
+    );
+  }
+}
+
+/// Set just before the shell is revealed from onboarding, so it scales in
+/// from 0.98 while onboarding scales to 1.03 and blurs out (Settle).
+class EntrancePending extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void set(bool v) => state = v;
+}
+
+final entrancePendingProvider = NotifierProvider<EntrancePending, bool>(EntrancePending.new);
+
+class AppEntrance extends ConsumerStatefulWidget {
+  const AppEntrance({super.key, required this.child});
+  final Widget child;
+
+  @override
+  ConsumerState<AppEntrance> createState() => _AppEntranceState();
+}
+
+class _AppEntranceState extends ConsumerState<AppEntrance> with SingleTickerProviderStateMixin {
+  late final AnimationController _a =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 420), value: 1);
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_started) {
+      _started = true;
+      if (ref.read(entrancePendingProvider)) _play();
+    }
+  }
+
+  void _play() {
+    _a.duration = PlannerMotion.ms(context, 420);
+    _a.forward(from: 0);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(entrancePendingProvider.notifier).set(false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(entrancePendingProvider, (_, v) {
+      if (v) _play();
+    });
+    // The tree shape never changes, so the shell keeps its state.
+    return AnimatedBuilder(
+      animation: _a,
+      child: widget.child,
+      builder: (context, child) => Opacity(
+        opacity: Curves.easeOut.transform(_a.value),
+        child: Transform.scale(
+          scale: 0.98 + 0.02 * PlannerMotion.settleCurve.transform(_a.value),
+          child: child,
+        ),
+      ),
     );
   }
 }

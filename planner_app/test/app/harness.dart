@@ -42,7 +42,7 @@ class Harness {
 
 /// Pumps the whole app at a journey step on a 400 × 860 phone.
 Future<Harness> pumpScenario(WidgetTester tester, Scenario k,
-    {PlannerData Function(PlannerData d)? edit, DateTime? clock}) async {
+    {PlannerData Function(PlannerData d)? edit, DateTime? clock, List overrides = const []}) async {
   final s = buildScenario(k, now: protoMonday);
   final data = edit == null ? s.data : edit(s.data);
   Harness.fakeNow = clock ?? s.clock;
@@ -54,6 +54,7 @@ Future<Harness> pumpScenario(WidgetTester tester, Scenario k,
   final container = ProviderContainer(overrides: [
     repositoryProvider.overrideWithValue(repo),
     initialDataProvider.overrideWithValue(data),
+    ...overrides.cast(),
   ]);
   addTearDown(container.dispose);
   await tester.pumpWidget(

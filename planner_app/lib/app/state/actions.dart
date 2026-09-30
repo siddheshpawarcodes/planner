@@ -63,6 +63,9 @@ class PlannerActions {
 
   void goTab(AppTab t) => ref.read(routerProvider).go(tabPath(t));
 
+  /// Settings › Edit routine: re-runs onboarding prefilled.
+  void editRoutine() => ref.read(routerProvider).push('$onboardingPath?edit=1');
+
   /// Today / Tomorrow switch (prototype `setDay`): out 170, then in.
   void setDay(int off) {
     final ui = ref.read(todayUiProvider);
@@ -362,6 +365,19 @@ class PlannerActions {
       all = [...all, ...occ];
     }
     if (add.isNotEmpty) await store.putTasks(add);
+  }
+
+  // --------------------------------------------------------- onboarding
+
+  /// "Build my rhythm": the routine commits here, before the assembly
+  /// explains it. Editing an existing routine also refits the week's undone
+  /// tasks around it. Returns false when the write failed.
+  Future<bool> applyRoutine(Routine r) async {
+    if (!await store.setRoutine(r)) return false;
+    final next = reflowForRoutine(data.tasks, r, today, now);
+    if (!identical(next, data.tasks) && !await store.commitTaskList(next)) return false;
+    if (!data.onboarded) return store.setMeta(onboarded: true);
+    return true;
   }
 
   // --------------------------------------------------------------- plan

@@ -13,6 +13,7 @@ import '../../domain/routine.dart';
 import '../../domain/time.dart';
 import 'planner_orb.dart';
 import 'speech.dart';
+import 'wake_word.dart';
 
 class VoiceState {
   const VoiceState({
@@ -116,6 +117,22 @@ class VoiceController extends Notifier<VoiceState> {
       return DemoSpeech(() => demoUtterances[dbg.line], factor: _m, allowed: dbg.micAllowed);
     }
     return ref.read(deviceSpeechProvider);
+  }
+
+  /// "Hey Planner" was heard (or simulated from the developer panel). It
+  /// only works while Today is open on screen (prototype `sayHey`).
+  void sayHey() {
+    final gate = ref.read(wakeRouteProvider);
+    final note = ref.read(noteProvider.notifier);
+    if (!gate.onToday) {
+      note.say('“Hey Planner” works only while Today is open on screen.');
+      return;
+    }
+    if (!gate.enabled) {
+      note.say('The wake phrase is off. Turn it on in Settings, Voice.');
+      return;
+    }
+    if (!state.open) tapOrb();
   }
 
   /// Orb tap (prototype `tapOrb`): works anywhere in the app.

@@ -12,6 +12,7 @@ import '../state/note.dart';
 import '../state/staging.dart';
 import '../state/store.dart';
 import '../state/ui_state.dart';
+import '../router.dart';
 import '../theme/planner_theme.dart';
 import '../../features/voice/voice_controller.dart';
 import 'foundations_page.dart';
@@ -29,6 +30,10 @@ Future<void> loadScenario(WidgetRef ref, Scenario k) async {
   await ref.read(plannerStoreProvider.notifier).replaceAll(s.data.copyWith(settings: settings));
   ref.read(clockProvider.notifier).pin(s.clock);
   ref.read(todayUiProvider.notifier).set((u) => const TodayUi());
+  if (!s.data.onboarded) {
+    ref.read(routerProvider).go(onboardingPath);
+    return;
+  }
   final tab = switch (k) {
     Scenario.week => AppTab.plan,
     Scenario.sunday => AppTab.progress,
@@ -107,6 +112,20 @@ class DevPanel extends ConsumerWidget {
           ),
         ),
       Wrap(spacing: 8, runSpacing: 8, children: [
+        // Same gating as the real wake phrase: Today must be on screen.
+        SecondaryPill(
+          label: 'Say “Hey Planner”',
+          height: 36,
+          onTap: ref.read(voiceControllerProvider.notifier).sayHey,
+        ),
+        SecondaryPill(
+          label: 'Go to Today and say it',
+          height: 36,
+          onTap: () {
+            ref.read(actionsProvider).goTab(AppTab.today);
+            ref.read(actionsProvider).seq.at(900, ref.read(voiceControllerProvider.notifier).sayHey);
+          },
+        ),
         SecondaryPill(
           label: voice.live ? 'Voice: live mic' : 'Voice: demo',
           height: 36,

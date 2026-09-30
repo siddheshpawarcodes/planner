@@ -440,12 +440,16 @@ class PlannerChip extends StatelessWidget {
     this.leading,
     this.height = 36,
     this.filledWhenIdle = false,
+    this.mono = false,
   });
   final String label;
   final bool selected;
   final VoidCallback? onTap;
   final Widget? leading;
   final double height;
+
+  /// The label is a time (Geist Mono).
+  final bool mono;
 
   /// s1 background when idle (onboarding style) instead of an outline.
   final bool filledWhenIdle;
@@ -474,7 +478,10 @@ class PlannerChip extends StatelessWidget {
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               if (leading != null) ...[leading!, const SizedBox(width: 8)],
-              Text(label, style: PlannerType.ui(13, color: selected ? c.bg : c.t2)),
+              Text(label,
+                  style: mono
+                      ? PlannerType.time(size: 12, weight: 500, color: selected ? c.bg : c.t2)
+                      : PlannerType.ui(13, color: selected ? c.bg : c.t2)),
             ]),
           ),
         ),
