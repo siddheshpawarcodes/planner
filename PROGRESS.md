@@ -212,6 +212,9 @@ All in `test/domain/scheduler_test.dart` and `test/app/*`:
 38. **macOS** builds with a deployment target of 11.0 (speech_to_text requires it).
 39. **Accessibility pass (10d):** `test/app/a11y_test.dart` visits every screen at 1.3× text with reduced motion (any overflow fails) and runs Flutter's guidelines: 44 × 44 targets (README 3.4, not Android's 48), a label on every tap target, AA text contrast. Fixes it drove: segmented controls and short pills keep their look but get 44px hit areas (`minTarget`); duplicate unlabelled tap nodes removed (orb, ribbon days, review sides) with `excludeFromSemantics`; board block text lines and Progress day labels scale with the text size. **Exception:** the Plan board's time-proportional blocks (45 min = 18px) and 26px collapsed columns stay below 44px; they carry custom actions (Move earlier/later/to the next day), keyboard focus, and the same tasks at 44px+ on Today.
 40. **Reduced motion:** blur and the now pulse were already off; placement now skips the staged introduction entirely (blocks appear in place).
+41. **Google Drive on Android is real** (`data/backup/google_drive_client.dart`): Drive v3 `appDataFolder` with the `drive.appdata` and `userinfo.email` scopes, via `google_sign_in` 7 **authorization only** (no `authenticate()`, which on Android would need a web `serverClientId`). It relies on the Android OAuth client for `com.planner.planner_app` with SHA-1 `EE:51:6E:0B:9D:5D:4A:A2:94:AF:95:6F:FD:33:D1:6C:77:B9:2B:2D`, which matches this Mac's debug keystore (release builds are signed with it too for now; a Play release needs its own SHA-1s registered). The Google Cloud project needs the Drive API enabled, and while the consent screen is in Testing the account must be a test user. iOS: stand-in in debug, "not available yet" in release (user decision: no iOS OAuth client for now).
+42. **Wake word is Porcupine** (`features/voice/porcupine_engine.dart`, behind `WakeWordEngine`). AccessKey: `--dart-define-from-file=config/secrets.json` (git-ignored; copy `config/secrets.example.json`). Keyword: `assets/wake/hey_planner_android.ppn` / `hey_planner_ios.ppn` (git-ignored). Without either, the wake phrase stays off and Settings says so. It arms only when the microphone is already allowed, stops before voice opens the mic, and re-arms 400 ms after voice closes. Porcupine's plugins declare compileSdk 31; the root `android/build.gradle.kts` lifts plugin libraries to 36.
+43. **Week starts on Monday** (user decision, 30 Sep): the row stays fixed at Monday.
 
 ---
 
@@ -248,6 +251,6 @@ All in `test/domain/scheduler_test.dart` and `test/app/*`:
 
 ## 10. Decisions still needed from the user
 
-1. **Google Cloud OAuth client IDs** for Drive backup (milestone 10).
-2. **Wake word provider and key** (Porcupine AccessKey plus a trained "Hey Planner" keyword, or another choice).
+1. **Picovoice AccessKey and the trained "Hey Planner" keyword files** (user will provide): put the key in `planner_app/config/secrets.json` and the `.ppn` files in `planner_app/assets/wake/`, then run `flutter run --dart-define-from-file=config/secrets.json`.
+2. **iOS OAuth client** for Drive (deferred by the user).
 3. App name and bundle id are the defaults (Planner, `com.planner.planner_app`); confirm or supply others before any store build.

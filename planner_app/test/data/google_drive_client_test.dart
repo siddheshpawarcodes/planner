@@ -56,7 +56,7 @@ class FakeDrive {
         }
         if (u.path.startsWith('/upload/drive/v3/files')) {
           // multipart/related: JSON metadata, then the file (base64).
-          final body = r is http.Request ? r.body : '';
+          final body = r.body;
           final boundary = RegExp(r'boundary="?([^";]+)"?').firstMatch(r.headers['content-type']!)![1]!;
           final parts = body.split('--$boundary').where((p) => p.trim().isNotEmpty && p.trim() != '--').toList();
           String payload(String part) => part.split(RegExp(r'\r?\n\r?\n')).skip(1).join('\n\n').trim();
