@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/planner_data.dart';
 import '../../domain/routine.dart';
 import '../../domain/capacity.dart';
+import '../../domain/progress.dart';
 import '../../domain/scheduler.dart';
 import '../../domain/series.dart';
 import '../../domain/task.dart';
@@ -62,6 +63,18 @@ class PlannerActions {
   // ---------------------------------------------------------------- tabs
 
   void goTab(AppTab t) => ref.read(routerProvider).go(tabPath(t));
+
+  /// Progress › Review this week.
+  void openReview() => ref.read(routerProvider).push(reviewPath);
+
+  /// Review › Plan next week: Plan › Upcoming, and what the week starts with.
+  void planNextWeek() {
+    final p = ref.read(weekProgressProvider);
+    final ahead = data.deadlines.where((d) => d.day > today).length;
+    setSeg(PlanSeg.upcoming);
+    goTab(AppTab.plan);
+    seq.at(300 * m, () => note.say(planNextNote(p.carried.length, ahead)));
+  }
 
   /// Settings › Edit routine: re-runs onboarding prefilled.
   void editRoutine() => ref.read(routerProvider).push('$onboardingPath?edit=1');

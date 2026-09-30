@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/onboarding/onboarding_page.dart';
 import '../features/plan/plan_page.dart';
+import '../features/progress/review_page.dart';
 import '../features/progress/progress_page.dart';
 import '../features/settings/settings_page.dart';
 import '../features/today/today_page.dart';
@@ -23,6 +24,9 @@ String tabPath(AppTab t) => switch (t) {
 /// Edit routine pushes it prefilled (`/onboarding?edit=1`).
 const onboardingPath = '/onboarding';
 
+/// The weekly review: a full-screen route over the shell.
+const reviewPath = '/review';
+
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: ref.read(plannerStoreProvider).onboarded ? '/today' : onboardingPath,
@@ -39,6 +43,24 @@ final routerProvider = Provider<GoRouter>((ref) {
               ? child
               : FadeTransition(
                   opacity: CurvedAnimation(parent: a, curve: PlannerMotion.settleCurve), child: child),
+        ),
+      ),
+      GoRoute(
+        path: reviewPath,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const ReviewPage(),
+          transitionDuration: const Duration(milliseconds: 520),
+          reverseTransitionDuration: const Duration(milliseconds: 420),
+          transitionsBuilder: (context, a, _, child) {
+            if (PlannerMotion.reduced(context)) return FadeTransition(opacity: a, child: child);
+            final s = CurvedAnimation(parent: a, curve: PlannerMotion.settleCurve);
+            return FadeTransition(
+              opacity: CurvedAnimation(parent: a, curve: const Interval(0, 420 / 520, curve: Curves.ease)),
+              child: SlideTransition(
+                  position: Tween(begin: const Offset(0, 0.03), end: Offset.zero).animate(s), child: child),
+            );
+          },
         ),
       ),
       StatefulShellRoute(

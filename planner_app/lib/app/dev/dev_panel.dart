@@ -44,6 +44,7 @@ Future<void> loadScenario(WidgetRef ref, Scenario k) async {
     ref.read(planUiProvider.notifier).set((p) => PlanUi(seg: PlanSeg.week, weekSel: s.data.installedDay! + 2));
   }
   ref.read(actionsProvider).goTab(tab);
+  if (k == Scenario.sunday) ref.read(actionsProvider).seq.at(400, ref.read(actionsProvider).openReview);
 }
 
 /// Debug-only mirror of the prototype's control panel.

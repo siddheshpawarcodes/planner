@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.planner.planner_app"
-    compileSdk = flutter.compileSdkVersion
+    // permission_handler_android needs API 37 to compile against (targetSdk is unchanged).
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

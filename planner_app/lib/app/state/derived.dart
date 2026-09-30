@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/settings.dart';
 import '../../domain/capacity.dart';
 import '../../domain/layout.dart';
+import '../../domain/progress.dart';
 import '../../domain/routine.dart';
 import '../../domain/task.dart';
 import 'clock.dart';
@@ -84,3 +85,17 @@ final capacityProvider = Provider.family<Capacity, int>((ref, day) {
 /// The day Today is showing (today or tomorrow).
 final shownDayProvider = Provider<int>(
     (ref) => ref.watch(todayProvider) + ref.watch(todayUiProvider.select((u) => u.dayOffset)));
+
+/// Progress and the weekly review for the current week (README 6.8, 6.9).
+final weekProgressProvider = Provider<WeekProgress>((ref) => weekProgress(
+      tasks: ref.watch(tasksProvider),
+      routine: ref.watch(routineProvider),
+      today: ref.watch(todayProvider),
+      now: ref.watch(nowMinuteProvider),
+      installedDay: ref.watch(plannerStoreProvider.select((d) => d.installedDay)),
+      countSkippedAsMissed: ref.watch(settingsProvider.select((s) => s.countSkippedAsMissed)),
+    ));
+
+/// Sunday evening: the Review button shows.
+final reviewAvailableProvider = Provider<bool>(
+    (ref) => reviewAvailable(ref.watch(todayProvider), ref.watch(nowMinuteProvider)));

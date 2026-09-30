@@ -6,7 +6,7 @@ new session should read this file first, then `planner-final-handoff/README.md`
 (the exact prototype logic). Everything decided so far is recorded here, so
 nothing needs to be re-derived.
 
-Last updated: 30 September 2026, day 2 (milestones 1 to 6 and 8 done; milestone 7 done except the real spotter and the Android run).
+Last updated: 30 September 2026, day 2 (milestones 1 to 6, 8 and 9 done; milestone 7 done except the real spotter and the live-mic check).
 
 ---
 
@@ -45,7 +45,7 @@ While `flutter run` is running in the background, `kill -USR1 <pid>` hot reloads
 |---|---|
 | Flutter | 3.44.8 stable (Dart 3.12.2), via fvm default |
 | Machine | Intel Mac (x86_64), macOS 26.6 |
-| Android phone | Motorola edge 50 pro, Android 16 (API 36), id `ZD222MDN6H` |
+| Android phone | Motorola edge 50 pro, Android 16 (API 36), id `ZD222MDN6H`. Screenshots: `adb -s ZD222MDN6H exec-out screencap -p > shot.png`; taps: `adb shell input tap X Y` (physical px, 1220 × 2712, density 450). |
 | iOS simulator | iPhone 17 (iOS 26.5), used for all visual checks so far |
 | Android emulator | `Medium_Phone` AVD uses an Android 37.2 **beta** 16KB-page x86_64 image and hangs at boot on this Intel Mac. Not usable. Installing a stable image (for example API 35 google_apis x86_64, about 1.5 GB) would fix it; not done. |
 | Other | A physical iPad ("Pranay's iPad") is connected to this Mac. It is not ours; never deploy to it. |
@@ -96,6 +96,7 @@ planner_app/
       series.dart              materializeSeries (28-day horizon), endSeries
       intents.dart             voice grammar (parseUtterance) and resolver (resolveIntent)
       onboarding.dart          OnboardingDraft (ranges, cascade, ruler snap, steps), rhythmCopy
+      progress.dart            weekProgress aggregates, heat levels, best window, review and Progress copy
     data/
       database.dart            Drift tables: tasks, deadlines, series, kv (routine, settings, meta)
       repository.dart          PlannerRepository, DriftPlannerRepository, MemoryPlannerRepository (tests)
@@ -109,7 +110,8 @@ planner_app/
                                wake_word (WakeWordEngine interface, foreground gate, WakeWordHost)
       onboarding/              onboarding_page (steps, assembly, exit), onboarding_widgets (segments,
                                readout, ruler, 24h bar, commitment rows, Add your own, assembly rows)
-      progress/                placeholder (milestone 9)
+      progress/                progress_page, ribbon (CategoryRibbon painter + geometry lerp), heatmap
+                               (FocusHeatmap), review_page (six-stage weekly review, route /review)
       settings/                Routine section with Edit routine (live) + developer panel; rest is milestone 10
     widgets/                   controls (Pressable, pills, chips, switch, segmented), task_block,
                                capacity_meter, bottom_nav, note_strip, planner_sheet, surfaces, icons
@@ -133,10 +135,10 @@ planner_app/
 | 6 | Missed flow: DecisionSheet with hold and fly | **Done** | Widget tests; simulator. |
 | 7 | Voice: overlay, orb, STT, intents, wake word | **Done except two items** | Grammar: 13 tests. Flow: 4 widget tests with the demo voice. Wake word: gating, `WakeWordEngine` interface, debug "Say Hey Planner" and orb hover are done (2 widget tests with a fake spotter). **Open:** a real spotter (needs a key, section 10) and the first run on the Motorola with the real microphone (the phone was not connected on day 2). |
 | 8 | Onboarding with assembly | **Done** | 14 domain tests (ranges, cascade, ruler, steps, 3h 10m / 6h copy, routine reflow) and 4 widget tests (first launch end to end, ruler and no fixed hours, Add your own, Edit routine). iPhone simulator. |
-| 9 | Progress (ribbon, heatmap) and weekly review | Not started (placeholder page) | |
+| 9 | Progress (ribbon, heatmap) and weekly review | **Done** | 8 domain tests (Sunday and Wednesday scenarios, heat, carried, copy) and 4 widget tests (empty state, day select and With work, all six review stages with keys and Plan next week, closing). Motorola and iPhone simulator. |
 | 10 | Settings, Drive, offline; tablet and desktop; accessibility and reduced-motion pass | Not started (dev panel only) | |
 
-Test count on day 2: 103 passing (`flutter test`), analyzer clean.
+Test count on day 2: 115 passing (`flutter test`), analyzer clean. **First Android run done on the Motorola** (Today, Progress, Settings render correctly).
 
 ---
 
@@ -192,17 +194,18 @@ All in `test/domain/scheduler_test.dart` and `test/app/*`:
 20. **Edit routine refits the week:** the prototype only swapped the routine. Here `reflowForRoutine` moves every undone task from today on that has not started and now overlaps fixed or protected time (or sits before wake) to the earliest free start after it, like the ripple pass. Done, started and unscheduled tasks never move; a kept overflow may stay in wind-down. This backs up the copy "Planner rebuilt your week around it."
 21. **Edit routine has a close button** (top right, "Close, keep the current routine"); the prototype had no way out. System back goes to the previous question, or closes at question 1 when editing.
 22. **The assembly builds the first weekday on or after today** (the prototype always used its Tuesday), and the weekend copy uses the first Saturday. The 24h bar also draws the first weekday.
+23. **compileSdk 37** in `android/app/build.gradle.kts`: `permission_handler_android` requires it (Flutter's default is 36; platform 37.0 is installed). targetSdk and minSdk still follow Flutter.
+24. **Progress uses real data, not the prototype's mock week.** Completed time = finished tasks plus fixed time that has passed (Office, Dinner), from the install day. The dashed envelope = live tasks plus commitments for days up to today ("With work" adds Office). The heatmap counts only focused categories (Study, Build, Self) from actual start/end times; the best window is the 2h (4 cells) with the most focused minutes, and "N days out of M" counts days with any focus in it. The heat summary stays on "Your rhythm appears here…" until 3 days with Planner.
+25. **Stats definitions:** planned = this week's tasks up to today, skipped ones only when Settings › Count skipped as missed is on; Rescheduled = tasks with movedCount > 0; Carried forward = still-missed tasks. The Review button shows on Sunday from 18:00. The week starts Monday (the Week starts on Monday setting is not honoured yet, milestone 10).
+26. **Review copy is generated** from the aggregates (counts in words up to ten, "evenings/mornings/afternoons" from the best window, name lists "A, B and 2 more"), with empty variants ("A quiet week.", "Nothing moved.", "Your rhythm is still forming."). Plan next week goes to Plan › Upcoming with "Next week starts with 1 carried-forward task and 2 deadlines."
 
 ---
 
 ## 8. Backlog (what is left, in order)
 
 ### Milestone 7 (finish)
-- First Android run on the Motorola (it was not connected on day 2): `flutter run -d ZD222MDN6H --dart-define=PLANNER_SCENARIO=tue` (the first Gradle build is slow on this Mac; let it finish), then check layout, haptics and voice with the real microphone: permission prompt, partial transcript, sound level driving the orb, final result → intent. Tune `DeviceSpeech` level mapping (−2…10 dB → 0..1) if the orb looks flat or clipped. Also walk the new onboarding there.
+- Live microphone on the Motorola: Settings › Developer › "Voice: live mic", then tap the orb; check the permission prompt, partial transcript, sound level driving the orb, final result → intent. Tune `DeviceSpeech` level mapping (−2…10 dB → 0..1) if the orb looks flat or clipped. (The app itself now builds and runs there.)
 - Real wake word: implement `WakeWordEngine` (for example Porcupine with a custom "Hey Planner" keyword) and override `wakeWordEngineProvider` in `main.dart`. Gating, the host widget and tests already exist. **Needs a decision and a key from the user** (section 10).
-
-### Milestone 9: Progress and weekly review (README 6.8, 6.9)
-Pure aggregates in `domain/progress.dart` (per-category completed hours per day, planned envelope, stats, heatmap from actual completion times, best window). CategoryRibbon CustomPainter (streamgraph, horizontal-tangent cubics, 1px bg separators, dashed envelope, left-to-right clip reveal 1400), day cursor and breakdown, count-up 1500 ease-out cubic, three stats, the moved cells, FocusHeatmap (7 × 36, 0/.18/.36/.62/1, diagonal 11ms stagger, bracket on the best window), Review button on Sunday evening. Weekly review: six staged screens with tap left/right, arrow keys, progress segments, the copy in README 6.9, "Plan next week" → Plan › Upcoming. Prototype reference: `WMOCK`, `WENV`, `HEATF`, the progress and review parts of `renderVals`.
 
 ### Milestone 10
 - **Settings** (README 6.10): push page with every section and row; Edit routine; notifications (flutter_local_notifications: next task 5 min before, one missed check-in, Sunday 21:00 review); voice switch and mic status; appearance (theme, motion, Today opens as); data (week start, count skipped as missed, Export JSON, Delete all data on a second tap); About copy.
