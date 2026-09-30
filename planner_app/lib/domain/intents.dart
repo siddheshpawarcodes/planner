@@ -13,14 +13,17 @@ enum IntentKind { add, move, complete, delete, ask, planEvening, reschedule, rec
 
 /// A spoken task: title plus optional slots.
 class SpokenTask {
-  const SpokenTask(this.title, {this.duration, this.day, this.pref, this.at});
+  const SpokenTask(this.title, {this.duration, this.day, this.pref, this.at, this.offset});
   final String title;
   final int? duration;
   final int? day;
   final TimePref? pref;
   final int? at;
+
+  /// "in 30 minutes", "after an hour": start this many minutes from now.
+  final int? offset;
   @override
-  String toString() => 'SpokenTask($title, $duration, $day, $pref, $at)';
+  String toString() => 'SpokenTask($title, $duration, $day, $pref, $at, +$offset)';
 }
 
 /// The parsed request (slots: title, category, duration, day, time,
@@ -105,6 +108,20 @@ String normalizeUtterance(String s) {
       .replaceAll(RegExp(r'\b(an|a) (hour|hr)\b'), '1 hour');
   return r;
 }
+
+/// A start relative to now ("in 30 minutes", "after 1 hour from now"). Parsed
+/// before durations so the number is not taken as the task's length.
+final _offsetRe = RegExp(r'\b(?:in|after) (\d+(?:\.\d+)?)\s*(hours?|hrs?|h|minutes?|mins?|m)\b(?: from now)?');
+
+int? _parseOffset(String s) {
+  final m = _offsetRe.firstMatch(s);
+  if (m == null) return null;
+  final v = double.parse(m[1]!);
+  return m[2]!.startsWith('h') ? (v * 60).round() : v.round();
+}
+
+/// The wake phrase said after tapping the orb ("Hey Planner, add gym…").
+final _wakeRe = RegExp(r'^(?:(?:hey|hi|ok|okay) )?planner\b,?\s*');
 
 final _durRe = RegExp(r'\b(?:for )?(\d+(?:\.\d+)?)\s*(hours?|hrs?|h|minutes?|mins?|m)\b');
 final _atRe = RegExp(r'\bat (\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|a m|p m)?\b');
@@ -256,7 +273,7 @@ Set<String> _keywordsOf(String normalized, VoiceIntent i) {
 
 /// Rule-based grammar over speech-to-text (README 6.3).
 VoiceIntent parseUtterance(String utterance, {required int today}) {
-  final s = normalizeUtterance(utterance);
+  final s = normalizeUtterance(utterance).replaceFirst(_wakeRe, '');
   VoiceIntent withKeys(VoiceIntent i) => VoiceIntent(i.kind,
       tasks: i.tasks,
       query: i.query,
@@ -312,16 +329,25 @@ VoiceIntent parseUtterance(String utterance, {required int today}) {
       .map((c) => c.trim())
       .where((c) => c.isNotEmpty)
       .toList();
+  final reminder = RegExp(r'^remind me\b').hasMatch(s);
   final tasks = <SpokenTask>[];
-  for (final c in chunks) {
+  for (final raw in chunks) {
+    final off = _parseOffset(raw);
+    final c = raw.replaceAll(_offsetRe, ' ');
     final title = _pretty(_titleOf(c), utterance);
     if (title.isEmpty) continue;
-    tasks.add(SpokenTask(title, duration: _parseDuration(c), day: _parseDay(c, today), pref: _parsePref(c), at: _parseAt(c)));
+    tasks.add(SpokenTask(title,
+        // A reminder with no length is a short block, not an hour.
+        duration: _parseDuration(c) ?? (reminder ? 15 : null),
+        day: _parseDay(c, today),
+        pref: _parsePref(c),
+        at: _parseAt(c),
+        offset: off));
   }
   final addy = RegExp(
           r"\b(add|schedule|put|remind|plan|want to|need to|have to|would like to|i'd like to|going to|gonna|i will|i'll)\b")
       .hasMatch(s);
-  final slotted = tasks.any((t) => t.duration != null || t.day != null || t.at != null) ||
+  final slotted = tasks.any((t) => t.duration != null || t.day != null || t.at != null || t.offset != null) ||
       day != null ||
       pref != null;
   if (tasks.isEmpty || (!addy && !slotted)) return withKeys(const VoiceIntent(IntentKind.unknown));
@@ -489,14 +515,24 @@ VoiceResolution resolveIntent(
         final defDay = i.day ?? tom;
         specs = [
           for (final t in i.tasks)
-            TaskSpec(
-              title: t.title,
-              cat: guessCat(t.title),
-              duration: t.duration ?? 60,
-              day: t.day ?? defDay,
-              pref: t.pref ?? i.pref,
-              at: t.at ?? (i.tasks.length == 1 ? i.at : null),
-            )
+            if (t.offset != null)
+              // "In 30 minutes": today (or past midnight, tomorrow) from now.
+              TaskSpec(
+                title: t.title,
+                cat: guessCat(t.title),
+                duration: t.duration ?? 60,
+                day: today + ceil5(now + t.offset!) ~/ 1440,
+                at: ceil5(now + t.offset!) % 1440,
+              )
+            else
+              TaskSpec(
+                title: t.title,
+                cat: guessCat(t.title),
+                duration: t.duration ?? 60,
+                day: t.day ?? defDay,
+                pref: t.pref ?? i.pref,
+                at: t.at ?? (i.tasks.length == 1 ? i.at : null),
+              )
         ];
       }
       final multi = !evening && specs.length > 1;

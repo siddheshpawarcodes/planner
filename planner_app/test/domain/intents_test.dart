@@ -151,6 +151,20 @@ void main() {
       expect(parseUtterance('Move the report to tomorrow morning', today: tue).pref, TimePref.morning);
     });
 
+    test('heard on the Motorola: starts relative to now, reminders, the wake phrase', () {
+      final m = say('schedule a meeting after an hour', inbox(), now: 1185);
+      expect(m.label, 'TODAY');
+      expect((m.rows.single.title, m.rows.single.detail), ('Meeting', '1h, 20:45'));
+      expect(m.core, Category.work);
+      final r = say('remind me to check my logs after 30 minutes', inbox(), now: 1185);
+      expect((r.rows.single.title, r.rows.single.detail), ('Check my logs', '15m, 20:15'));
+      final i = parseUtterance('in half an hour call mum for 20 minutes', today: tue);
+      expect((i.tasks.single.title, i.tasks.single.offset, i.tasks.single.duration), ('Call mum', 30, 20));
+      expect(say('hey planner', const []).summary, contains('Try “Add gym tomorrow for one hour.”'));
+      final g = say('Hey Planner, add gym tomorrow for one hour.', inbox());
+      expect((g.label, g.rows.single.title, g.rows.single.detail), ('TOMORROW EVENING', 'Gym', '1h, 20:00'));
+    });
+
     test('unknown requests explain what works', () {
       final r = say('hmm', const []);
       expect(r.summary, contains('Try “Add gym tomorrow for one hour.”'));

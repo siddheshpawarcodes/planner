@@ -198,13 +198,15 @@ All in `test/domain/scheduler_test.dart` and `test/app/*`:
 24. **Progress uses real data, not the prototype's mock week.** Completed time = finished tasks plus fixed time that has passed (Office, Dinner), from the install day. The dashed envelope = live tasks plus commitments for days up to today ("With work" adds Office). The heatmap counts only focused categories (Study, Build, Self) from actual start/end times; the best window is the 2h (4 cells) with the most focused minutes, and "N days out of M" counts days with any focus in it. The heat summary stays on "Your rhythm appears here…" until 3 days with Planner.
 25. **Stats definitions:** planned = this week's tasks up to today, skipped ones only when Settings › Count skipped as missed is on; Rescheduled = tasks with movedCount > 0; Carried forward = still-missed tasks. The Review button shows on Sunday from 18:00. The week starts Monday (the Week starts on Monday setting is not honoured yet, milestone 10).
 26. **Review copy is generated** from the aggregates (counts in words up to ten, "evenings/mornings/afternoons" from the best window, name lists "A, B and 2 more"), with empty variants ("A quiet week.", "Nothing moved.", "Your rhythm is still forming."). Plan next week goes to Plan › Upcoming with "Next week starts with 1 carried-forward task and 2 deadlines."
+27. **Android speech (from the first live-mic run):** `pauseFor` 3s and `ListenMode.dictation` (1.6s cut people off: the timer starts before the recogniser warms up), `listenFor` 30s, and a 500ms grace after "not listening" so the final result, not the last partial, is used. Debug builds log `[speech]` partials, finals and the dB range per session (`flutter run` output). Levels on the Motorola span −2…10 dB, the full mapped range.
+28. **Grammar additions from real speech:** a leading "Hey Planner" is stripped; "in/after N minutes/hours (from now)" is a start relative to now, today (never a duration); "Remind me to …" without a length is a 15-minute block.
 
 ---
 
 ## 8. Backlog (what is left, in order)
 
 ### Milestone 7 (finish)
-- Live microphone on the Motorola: Settings › Developer › "Voice: live mic", then tap the orb; check the permission prompt, partial transcript, sound level driving the orb, final result → intent. Tune `DeviceSpeech` level mapping (−2…10 dB → 0..1) if the orb looks flat or clipped. (The app itself now builds and runs there.)
+- Live microphone on the Motorola works (permission, partial and final transcripts, intents). Still to judge by eye: whether the orb looks flat or clipped with the −2…10 dB → 0..1 mapping, and haptics.
 - Real wake word: implement `WakeWordEngine` (for example Porcupine with a custom "Hey Planner" keyword) and override `wakeWordEngineProvider` in `main.dart`. Gating, the host widget and tests already exist. **Needs a decision and a key from the user** (section 10).
 
 ### Milestone 10

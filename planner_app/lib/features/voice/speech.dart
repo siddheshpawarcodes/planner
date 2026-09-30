@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
@@ -46,6 +47,13 @@ class DeviceSpeech implements SpeechInput {
   SpeechCallbacks? _cb;
   bool _doneSent = false;
 
+  /// Raw sound-level range this session (debug log, to tune the mapping).
+  double _lo = double.infinity, _hi = double.negativeInfinity;
+
+  static void _log(String m) {
+    if (kDebugMode) debugPrint('[speech] $m');
+  }
+
   @override
   bool get isLive => true;
 
@@ -57,7 +65,10 @@ class DeviceSpeech implements SpeechInput {
       _ready = _ready ||
           await _stt.initialize(
             onStatus: _onStatus,
-            onError: (_) => _finish(),
+            onError: (e) {
+              _log('error ${e.errorMsg} permanent=${e.permanent}');
+              _finish();
+            },
           );
     } catch (_) {
       return MicAccess.unavailable;
@@ -69,36 +80,57 @@ class DeviceSpeech implements SpeechInput {
     return MicAccess.granted;
   }
 
+  Timer? _grace;
+
   void _onStatus(String s) {
-    if (s == SpeechToText.doneStatus || s == SpeechToText.notListeningStatus) _finish();
+    _log('status $s');
+    if (s == SpeechToText.doneStatus || s == SpeechToText.notListeningStatus) {
+      // Android reports "not listening" a moment before the final result;
+      // wait briefly for it rather than using the last partial.
+      _grace ??= Timer(const Duration(milliseconds: 500), _finish);
+    }
   }
 
   void _finish() {
+    _grace?.cancel();
+    _grace = null;
     if (_doneSent) return;
     _doneSent = true;
+    _log('done "$_last" level ${_lo.toStringAsFixed(1)}…${_hi.toStringAsFixed(1)} dB');
     _cb?.onDone(_last);
   }
 
   @override
   Future<void> listen(SpeechCallbacks cb) async {
     _cb = cb;
+    _grace?.cancel();
+    _grace = null;
     _last = '';
     _doneSent = false;
+    _lo = double.infinity;
+    _hi = double.negativeInfinity;
     await _stt.listen(
       onResult: (SpeechRecognitionResult r) {
         _last = r.recognizedWords;
+        _log('${r.finalResult ? 'final' : 'partial'} "$_last"');
         cb.onWords(_last);
         if (r.finalResult) _finish();
       },
       onSoundLevelChange: (db) {
+        _lo = math.min(_lo, db);
+        _hi = math.max(_hi, db);
         // speech_to_text reports roughly −2…10 dB; map onto 0..1.
         cb.onLevel(math.max(0, math.min(1, (db + 2) / 12)));
       },
       listenOptions: SpeechListenOptions(
         partialResults: true,
         cancelOnError: true,
-        listenFor: const Duration(seconds: 20),
-        pauseFor: const Duration(milliseconds: 1600),
+        // Dictation keeps Android listening through the natural pauses of a
+        // long request. The pause timer starts before the recogniser is warm
+        // (about 0.3s on the Motorola), so 1.6s cut people off mid-sentence.
+        listenMode: ListenMode.dictation,
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 3),
       ),
     );
   }
@@ -108,6 +140,8 @@ class DeviceSpeech implements SpeechInput {
 
   @override
   Future<void> cancel() async {
+    _grace?.cancel();
+    _grace = null;
     _doneSent = true;
     await _stt.cancel();
   }
