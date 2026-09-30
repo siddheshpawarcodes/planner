@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Wake word: Picovoice keyword models and the build-time AccessKey.
+/assets/wake/*.ppn
+/config/secrets.json

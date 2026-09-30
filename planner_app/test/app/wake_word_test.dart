@@ -17,6 +17,8 @@ class FakeSpotter implements WakeWordEngine {
 
   @override
   bool get available => true;
+  @override
+  String? get unavailableReason => null;
 
   @override
   Future<void> start(VoidCallback onWake) async {
@@ -64,16 +66,17 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
+    expect(spot.running, isFalse, reason: 'arming waits for the microphone to be free');
+    await h.settle(500);
     expect(spot.running, isTrue);
 
-    // Hearing the phrase opens voice, which stops the spotter until idle.
+    // Hearing the phrase releases the microphone first, then opens voice.
     spot.hear();
     await tester.pump();
-    expect(h.container.read(voiceControllerProvider).phase, OrbState.wake);
-    await tester.pump();
     expect(spot.running, isFalse);
+    expect(h.container.read(voiceControllerProvider).phase, OrbState.wake);
     h.container.read(voiceControllerProvider.notifier).close();
-    await h.settle(300);
+    await h.settle(600);
     expect(spot.running, isTrue);
     expect(spot.starts, 5);
 

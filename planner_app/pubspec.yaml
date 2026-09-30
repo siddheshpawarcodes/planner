@@ -48,6 +48,10 @@ dependencies:
   flutter_timezone: ^5.1.0
   share_plus: ^13.3.0
   connectivity_plus: ^7.3.1
+  google_sign_in: ^7.2.0
+  googleapis: ^17.0.0
+  http: ^1.6.0
+  porcupine_flutter: ^4.0.0
 
 dev_dependencies:
   flutter_test:
@@ -73,6 +77,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # "Hey Planner" keyword models (git-ignored .ppn files; see the README).
+  assets:
+    - assets/wake/
 
   fonts:
     # Variable fonts: the wght (and Bricolage opsz) axes are driven by

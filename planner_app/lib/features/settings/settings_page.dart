@@ -14,6 +14,7 @@ import '../../widgets/controls.dart';
 import '../../widgets/icons.dart';
 import '../../app/state/ui_state.dart';
 import '../notifications/notification_service.dart';
+import '../voice/wake_word.dart';
 import 'drive_page.dart';
 
 /// Settings (README 6.10): a push page with Routine, Notifications, Voice,
@@ -99,6 +100,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final s = ref.watch(settingsProvider);
     final r = ref.watch(routineProvider);
     final act = ref.read(actionsProvider);
+    final wake = ref.read(wakeWordEngineProvider);
     final line = BorderSide(color: c.ln);
 
     Widget heading(String t) => Padding(
@@ -203,7 +205,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         heading('Voice'),
         toggle(
           '“Hey Planner”',
-          'Works only while Today is open on screen. Planner never listens in the background.',
+          wake.available
+              ? 'Works only while Today is open on screen. Planner never listens in the background.'
+              : 'Not set up on this build, so tap the orb to talk.'
+                  '${kDebugMode ? ' (${wake.unavailableReason})' : ''}',
           s.wakeWord,
           (v) => _set((x) => x.copyWith(wakeWord: v)),
           label: 'Wake phrase',

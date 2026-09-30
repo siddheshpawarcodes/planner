@@ -96,12 +96,15 @@ class SyncController extends Notifier<SyncState> {
     if (state.status != SyncStatus.off) return;
     state = const SyncState(status: SyncStatus.connecting);
     String? account;
+    String? why;
     try {
       account = await _drive.signIn();
+    } on DriveException catch (e) {
+      why = e.message;
     } catch (_) {}
     if (account == null) {
       state = const SyncState();
-      _note.say('Google Drive isn’t connected. Everything stays on this phone.');
+      _note.say(why ?? 'Google Drive isn’t connected. Everything stays on this phone.');
       return;
     }
     await _store.setMeta(driveAccount: account);
@@ -116,6 +119,9 @@ class SyncController extends Notifier<SyncState> {
     PlannerSnapshot? remote;
     try {
       remote = await _drive.readBackup();
+    } on DriveException catch (e) {
+      if (announce) _note.say(e.message);
+      return;
     } catch (_) {
       if (announce) _note.say('Couldn’t reach Google Drive. Planner will try again later.');
       return;
@@ -139,9 +145,9 @@ class SyncController extends Notifier<SyncState> {
     try {
       await _drive.write(PlannerSnapshot.of(before, at: at),
           onProgress: (p) => state = state.copyWith(progress: p));
-    } catch (_) {
+    } catch (e) {
       state = const SyncState(status: SyncStatus.synced);
-      _note.say('Backup didn’t finish. Everything is still on this phone.');
+      _note.say(e is DriveException ? e.message : 'Backup didn’t finish. Everything is still on this phone.');
       return;
     }
     // Edits made during the upload still count as changes.
@@ -177,9 +183,9 @@ class SyncController extends Notifier<SyncState> {
           name: keptBackupName(DateTime.now()), onProgress: (p) => state = state.copyWith(progress: p * 0.8));
       await _apply(remote);
       _note.say('Restored from your Drive backup. The previous plan was saved first.');
-    } catch (_) {
+    } catch (e) {
       state = const SyncState(status: SyncStatus.synced);
-      _note.say('Restore didn’t finish. Nothing was changed.');
+      _note.say(e is DriveException ? e.message : 'Restore didn’t finish. Nothing was changed.');
     }
   }
 

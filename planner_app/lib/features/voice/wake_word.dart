@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,21 +11,29 @@ import 'voice_controller.dart';
 /// An on-device keyword spotter for "Hey Planner" (README 6.3). It runs only
 /// while [wakeGateProvider] says the wake phrase is armed; there is no
 /// background service.
+/// The app uses Porcupine (`porcupine_engine.dart`); another spotter can
+/// replace it by implementing this interface.
 abstract class WakeWordEngine {
-  /// False until a spotter (and its keyword model) is configured.
+  /// Configured and able to run (key, keyword model, platform).
   bool get available;
+
+  /// Why not, for Settings and debug logs; null when [available].
+  String? get unavailableReason;
 
   /// Starts listening for the phrase; [onWake] fires once per detection.
   Future<void> start(VoidCallback onWake);
+
+  /// Stops listening and releases the microphone.
   Future<void> stop();
 }
 
-/// No spotter configured yet: tap-to-talk only. (A Porcupine or similar
-/// engine replaces this once a key and keyword model exist.)
+/// Tap-to-talk only: tests, and platforms without a spotter.
 class NoWakeWordEngine implements WakeWordEngine {
-  const NoWakeWordEngine();
+  const NoWakeWordEngine([this.unavailableReason = 'No wake-word engine on this platform.']);
   @override
   bool get available => false;
+  @override
+  final String? unavailableReason;
   @override
   Future<void> start(VoidCallback onWake) async {}
   @override
@@ -106,6 +116,11 @@ class _WakeWordHostState extends ConsumerState<WakeWordHost> {
   late final AppLifecycleListener _life;
   late final WakeWordEngine _engine = ref.read(wakeWordEngineProvider);
   bool _running = false;
+  Timer? _arm;
+
+  /// Re-arming waits a moment so the speech recogniser has released the
+  /// microphone (Android can't share it between two listeners).
+  static const _armDelay = Duration(milliseconds: 400);
 
   @override
   void initState() {
@@ -119,17 +134,34 @@ class _WakeWordHostState extends ConsumerState<WakeWordHost> {
   }
 
   void _sync(bool armed) {
-    if (armed == _running || !_engine.available) return;
-    _running = armed;
-    if (armed) {
-      _engine.start(() => ref.read(voiceControllerProvider.notifier).sayHey());
-    } else {
-      _engine.stop();
+    if (!_engine.available) return;
+    _arm?.cancel();
+    if (!armed) {
+      if (_running) {
+        _running = false;
+        _engine.stop();
+      }
+      return;
     }
+    if (_running) return;
+    _arm = Timer(_armDelay, () {
+      if (!mounted || !ref.read(wakeGateProvider).armed || _running) return;
+      _running = true;
+      _engine.start(_heard);
+    });
+  }
+
+  /// "Hey Planner": release the microphone first, then open voice.
+  Future<void> _heard() async {
+    if (!_running) return;
+    _running = false;
+    await _engine.stop();
+    if (mounted) ref.read(voiceControllerProvider.notifier).sayHey();
   }
 
   @override
   void dispose() {
+    _arm?.cancel();
     _life.dispose();
     if (_running) _engine.stop();
     super.dispose();

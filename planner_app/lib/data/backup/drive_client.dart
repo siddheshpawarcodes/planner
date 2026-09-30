@@ -11,6 +11,14 @@ String keptBackupName(DateTime at) {
   return 'planner-backup-${at.year}${two(at.month)}${two(at.day)}-${two(at.hour)}${two(at.minute)}${two(at.second)}.json';
 }
 
+/// A readable failure the Drive page can show as-is.
+class DriveException implements Exception {
+  const DriveException(this.message);
+  final String message;
+  @override
+  String toString() => 'DriveException: $message';
+}
+
 /// Google Drive, `drive.appdata` scope only (README 6.11): Planner sees just
 /// the files it creates. Behind an interface so every state can be built
 /// and tested before OAuth client ids exist.
