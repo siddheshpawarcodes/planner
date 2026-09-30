@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/layout.dart';
 import '../../app/state/ui_state.dart';
 import '../../app/theme/planner_theme.dart';
 import '../../data/settings.dart';
@@ -17,6 +18,10 @@ class TodayPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Tablet and desktop: Today is a rail beside the board, strip only.
+    final wide = PlannerLayout.of(context).wide;
+    final stripOnly = this.stripOnly || wide;
+    final compact = this.compact || wide;
     final view = stripOnly ? TodayView.strip : ref.watch(todayUiProvider.select((u) => u.view));
     final sheetOpen = ref.watch(sheetProvider) != null;
     final strip = view == TodayView.strip;

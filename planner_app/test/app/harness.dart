@@ -40,14 +40,17 @@ class Harness {
   }
 }
 
-/// Pumps the whole app at a journey step on a 400 × 860 phone.
+/// Pumps the whole app at a journey step (a 400 × 860 phone by default).
 Future<Harness> pumpScenario(WidgetTester tester, Scenario k,
-    {PlannerData Function(PlannerData d)? edit, DateTime? clock, List overrides = const []}) async {
+    {PlannerData Function(PlannerData d)? edit,
+    DateTime? clock,
+    List overrides = const [],
+    Size size = const Size(400, 860)}) async {
   final s = buildScenario(k, now: protoMonday);
   final data = edit == null ? s.data : edit(s.data);
   Harness.fakeNow = clock ?? s.clock;
   ClockController.realNow = () => Harness.fakeNow;
-  tester.view.physicalSize = const Size(400, 860);
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   final repo = MemoryPlannerRepository(data);

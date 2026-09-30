@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/layout.dart';
 import '../../app/state/actions.dart';
 import '../../app/state/clock.dart';
 import '../../app/state/derived.dart';
@@ -35,6 +36,9 @@ class PlanPage extends ConsumerWidget {
       _ => ui.weekSel ?? today,
     };
     final up = ui.seg == PlanSeg.upcoming;
+    // Desktop: the week planner shows all seven days expanded.
+    final allExpanded =
+        this.allExpanded || (PlannerLayout.of(context) == LayoutKind.desktop && ui.seg == PlanSeg.week);
     final title = switch (ui.seg) {
       PlanSeg.week => 'This week',
       PlanSeg.upcoming => 'Upcoming',

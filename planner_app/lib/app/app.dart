@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/settings.dart';
+import 'layout.dart';
 import 'router.dart';
 import 'state/derived.dart';
 import 'state/ui_state.dart';
@@ -47,7 +48,10 @@ class _MotionScope extends ConsumerWidget {
     final mq = MediaQuery.of(context);
     return MediaQuery(
       data: mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.3)),
-      child: MotionPrefs(reduced: setting ?? platform, child: child),
+      child: MotionPrefs(
+        reduced: setting ?? platform,
+        child: PlannerLayout(kind: LayoutKind.forWidth(mq.size.width), child: child),
+      ),
     );
   }
 }

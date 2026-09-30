@@ -14,6 +14,7 @@ import '../../domain/base_day.dart';
 import '../../domain/layout.dart';
 import '../../domain/task.dart';
 import '../../domain/time.dart';
+import '../../widgets/task_focus.dart';
 import '../../widgets/surfaces.dart';
 import '../../widgets/task_block.dart';
 import 'today_model.dart';
@@ -427,11 +428,14 @@ class _TimelineStripState extends ConsumerState<TimelineStrip> {
                       right: ins,
                       top: 0,
                       bottom: 0,
-                      child: TaskBlock(
-                        look: look,
-                        onOpen: () => act.openBlock(t.id),
-                        onComplete: ({required fromSwipe}) => act.toggle(t.id, fromSwipe: fromSwipe),
-                        onReschedule: () => act.openDecision(t.id, reschedule: !missed),
+                      child: TaskFocus(
+                        taskId: t.id,
+                        child: TaskBlock(
+                          look: look,
+                          onOpen: () => act.openBlock(t.id),
+                          onComplete: ({required fromSwipe}) => act.toggle(t.id, fromSwipe: fromSwipe),
+                          onReschedule: () => act.openDecision(t.id, reschedule: !missed),
+                        ),
                       ),
                     ),
                   ]);

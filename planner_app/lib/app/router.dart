@@ -71,7 +71,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(path: '/today', builder: (_, _) => const TodayPage()),
           ]),
-          StatefulShellBranch(routes: [
+          // Preloaded: tablet and desktop show the board beside Today.
+          StatefulShellBranch(preload: true, routes: [
             GoRoute(path: '/plan', builder: (_, _) => const PlanPage()),
           ]),
           StatefulShellBranch(routes: [

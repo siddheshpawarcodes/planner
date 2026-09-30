@@ -461,6 +461,25 @@ class PlannerActions {
 
   /// Tapping a column (prototype `selDay`): in the day zooms, today and
   /// tomorrow keep their zoom; any other day opens Week on it.
+  /// Keyboard T: Today, today's date on the board too.
+  void goToday() {
+    goTab(AppTab.today);
+    setDay(0);
+    ref.read(planUiProvider.notifier).set((p) => p.copyWith(weekSel: today));
+  }
+
+  /// Keyboard ← →: the phone's Today switches Today/Tomorrow; otherwise the
+  /// board's selected day moves (it stays within the current week).
+  void stepDay(int delta, {required bool wide}) {
+    if (!wide && tab == AppTab.today) {
+      setDay((ref.read(todayUiProvider).dayOffset + delta).clamp(0, 1));
+      return;
+    }
+    if (tab == AppTab.progress || tab == AppTab.settings) return;
+    final ws = weekStart(planSel);
+    selDay((planSel + delta).clamp(ws, ws + 6));
+  }
+
   void selDay(int d) {
     final p = ref.read(planUiProvider);
     final ctl = ref.read(planUiProvider.notifier);

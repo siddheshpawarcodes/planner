@@ -18,6 +18,7 @@ import '../../domain/routine.dart';
 import '../../domain/scheduler.dart';
 import '../../domain/task.dart';
 import '../../domain/time.dart';
+import '../../widgets/task_focus.dart';
 import '../../widgets/surfaces.dart';
 
 /// Board geometry (prototype `geo()`), scaled to the available width.
@@ -710,12 +711,16 @@ class _PlanBoardState extends ConsumerState<PlanBoard> {
             child: block,
           );
           if (interactive) {
-            block = _BlockGestures(
-              onTap: () => act.openBlock(t.id),
-              onStart: () => _begin(t),
-              onMove: (delta, global) => _move(g, delta, global, r, today, now),
-              onEnd: _end,
-              child: block,
+            block = TaskFocus(
+              taskId: t.id,
+              radius: 2,
+              child: _BlockGestures(
+                onTap: () => act.openBlock(t.id),
+                onStart: () => _begin(t),
+                onMove: (delta, global) => _move(g, delta, global, r, today, now),
+                onEnd: _end,
+                child: block,
+              ),
             );
           }
           final label =

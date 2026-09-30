@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../app/layout.dart';
 import '../app/state/ui_state.dart';
 import '../app/theme/planner_theme.dart';
 import '../features/tasks/decision_sheet.dart';
@@ -83,72 +84,77 @@ class _SheetHostState extends ConsumerState<SheetHost> with SingleTickerProvider
           left: 0,
           right: 0,
           bottom: 0,
-          child: AnimatedBuilder(
-            animation: _a,
-            builder: (context, child) {
-              final v = PlannerMotion.settleCurve.transform(_a.value);
-              return FractionalTranslation(
-                translation: Offset(0, (1 - v) * 1.04),
-                child: Transform.translate(offset: Offset(0, _drag), child: child),
-              );
-            },
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                  maxHeight: (mq.size.height - mq.padding.top - 12).clamp(0, 800)),
-              child: Semantics(
-                scopesRoute: true,
-                namesRoute: true,
-                explicitChildNodes: true,
-                label: switch (shown.kind) {
-                  SheetKind.detail => 'Task details',
-                  SheetKind.decision => 'Decide',
-                  SheetKind.create => 'New task',
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: c.s1,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                  ),
-                  padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onVerticalDragUpdate: (d) =>
-                          setState(() => _drag = (_drag + d.delta.dy).clamp(0, 600)),
-                      onVerticalDragEnd: (d) {
-                        if (_drag > 90 || d.velocity.pixelsPerSecond.dy > 700) {
-                          _close();
-                        } else {
-                          setState(() => _drag = 0);
-                        }
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.only(top: 8, bottom: 10),
-                        alignment: Alignment.center,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: AnimatedBuilder(
+              animation: _a,
+              builder: (context, child) {
+                final v = PlannerMotion.settleCurve.transform(_a.value);
+                return FractionalTranslation(
+                  translation: Offset(0, (1 - v) * 1.04),
+                  child: Transform.translate(offset: Offset(0, _drag), child: child),
+                );
+              },
+              child: ConstrainedBox(
+                // Tablet and desktop: a 560px sheet centred at the bottom.
+                constraints: BoxConstraints(
+                    maxHeight: (mq.size.height - mq.padding.top - 12).clamp(0, 800),
+                    maxWidth: PlannerLayout.of(context).wide ? 560 : double.infinity),
+                child: Semantics(
+                  scopesRoute: true,
+                  namesRoute: true,
+                  explicitChildNodes: true,
+                  label: switch (shown.kind) {
+                    SheetKind.detail => 'Task details',
+                    SheetKind.decision => 'Decide',
+                    SheetKind.create => 'New task',
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: c.s1,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    ),
+                    padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onVerticalDragUpdate: (d) =>
+                            setState(() => _drag = (_drag + d.delta.dy).clamp(0, 600)),
+                        onVerticalDragEnd: (d) {
+                          if (_drag > 90 || d.velocity.pixelsPerSecond.dy > 700) {
+                            _close();
+                          } else {
+                            setState(() => _drag = 0);
+                          }
+                        },
                         child: Container(
-                          width: 36,
-                          height: 4,
-                          decoration:
-                              BoxDecoration(color: c.ln, borderRadius: BorderRadius.circular(2)),
+                          width: double.infinity,
+                          padding: const EdgeInsets.only(top: 8, bottom: 10),
+                          alignment: Alignment.center,
+                          child: Container(
+                            width: 36,
+                            height: 4,
+                            decoration:
+                                BoxDecoration(color: c.ln, borderRadius: BorderRadius.circular(2)),
+                          ),
                         ),
                       ),
-                    ),
-                    Flexible(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.fromLTRB(20, 0, 20, 30 + mq.padding.bottom),
-                        child: KeyedSubtree(
-                          key: ValueKey(shown),
-                          child: switch (shown.kind) {
-                            SheetKind.detail => DetailSheet(taskId: shown.taskId!),
-                            SheetKind.decision =>
-                              DecisionSheet(taskId: shown.taskId!, reschedule: shown.reschedule),
-                            SheetKind.create => TaskSheet(draft: shown.draft ?? const TaskDraft()),
-                          },
+                      Flexible(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(20, 0, 20, 30 + mq.padding.bottom),
+                          child: KeyedSubtree(
+                            key: ValueKey(shown),
+                            child: switch (shown.kind) {
+                              SheetKind.detail => DetailSheet(taskId: shown.taskId!),
+                              SheetKind.decision =>
+                                DecisionSheet(taskId: shown.taskId!, reschedule: shown.reschedule),
+                              SheetKind.create => TaskSheet(draft: shown.draft ?? const TaskDraft()),
+                            },
+                          ),
                         ),
                       ),
-                    ),
-                  ]),
+                    ]),
+                  ),
                 ),
               ),
             ),
