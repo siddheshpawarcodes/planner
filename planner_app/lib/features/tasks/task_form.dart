@@ -117,9 +117,14 @@ const Object _unset = Object();
 (String, String) previewText(TaskForm f, DaySlot? pv, Routine r, List<Task> all,
     {required int today, required num now}) {
   if (pv == null) {
+    final d = f.date;
     return (
       f.hasTitle && f.hasDuration
-          ? 'No room in the next 7 days'
+          ? d == null
+              ? 'No room in the next 7 days'
+              : d == today
+                  ? 'No room left today'
+                  : 'No room ${d == today + 1 ? 'tomorrow' : 'on ${dayLongNames[weekday0(d)]}'}'
           : f.hasTitle
               ? 'Pick a duration'
               : 'Planner will find the time',

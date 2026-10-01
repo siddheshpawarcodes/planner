@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/settings.dart';
 import '../../data/backup/sync.dart';
 import '../../domain/intents.dart';
+import '../../domain/time.dart';
+import '../../features/notifications/notification_service.dart';
 import '../../features/voice/speech.dart';
 import '../../widgets/controls.dart';
 import '../state/actions.dart';
@@ -164,6 +166,15 @@ class DevPanel extends ConsumerWidget {
           onTap: () async {
             await ref.read(syncProvider.notifier).debugConflict();
             ref.read(actionsProvider).openDrivePage();
+          },
+        ),
+        SecondaryPill(
+          label: 'Test alarm in 1 minute',
+          height: 36,
+          onTap: () {
+            final at = DateTime.now().add(const Duration(minutes: 1));
+            ref.read(testAlarmProvider.notifier).set(at);
+            ref.read(noteProvider.notifier).say('Test alarm set for ${fmt(at.hour * 60 + at.minute)}.');
           },
         ),
         SecondaryPill(

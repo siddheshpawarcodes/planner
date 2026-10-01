@@ -177,21 +177,37 @@ class LocalNotifications implements NotificationService {
 /// Overridden in `main` with [LocalNotifications].
 final notificationServiceProvider = Provider<NotificationService>((ref) => NoNotifications());
 
+/// Debug: Settings › Developer › "Test alarm in 1 minute". Scheduling
+/// replaces everything on each change, so the test alarm lives in the plan.
+final testAlarmProvider = NotifierProvider<TestAlarm, DateTime?>(TestAlarm.new);
+
+class TestAlarm extends Notifier<DateTime?> {
+  @override
+  DateTime? build() => null;
+  void set(DateTime? at) => state = at;
+}
+
 /// What should be scheduled right now (debug scenarios with a pinned clock
 /// schedule nothing, since their times aren't real).
 final plannedNotesProvider = Provider<List<PlannedNote>>((ref) {
   final s = ref.watch(settingsProvider);
   final virtual = ref.watch(clockProvider.notifier).isVirtual;
+  final test = ref.watch(testAlarmProvider);
   ref.watch(todayProvider);
   if (virtual) return const [];
-  return planNotifications(
-    tasks: ref.watch(tasksProvider),
-    now: DateTime.now(),
-    nextTask: s.notifyNext,
-    alarms: s.taskAlarms,
-    missed: s.notifyMissed,
-    review: s.notifyReview,
-  );
+  final now = DateTime.now();
+  return [
+    ...planNotifications(
+      tasks: ref.watch(tasksProvider),
+      now: now,
+      nextTask: s.notifyNext,
+      alarms: s.taskAlarms,
+      missed: s.notifyMissed,
+      review: s.notifyReview,
+    ),
+    if (kDebugMode && test != null && test.isAfter(now))
+      PlannedNote(3999, NoteKind.alarm, test, 'Test alarm', 'This is how a task alarm rings.'),
+  ];
 });
 
 /// Re-plans (debounced) whenever tasks, settings or the day change, and when

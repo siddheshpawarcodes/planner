@@ -60,6 +60,24 @@ void main() {
     await h.dispose();
   });
 
+  testWidgets('no room names the chosen day', (tester) async {
+    final h = await pumpScenario(tester, Scenario.missed); // Wed 23:05
+    await tester.tap(find.bySemanticsLabel('Add task'));
+    await h.settle(600);
+    await tester.enterText(find.byType(TextField), 'Read');
+    await h.settle(600);
+    await tester.tap(find.widgetWithText(PlannerChip, '2h'));
+    await h.settle(300);
+    await tester.tap(find.widgetWithText(PlannerChip, 'Today'));
+    await h.settle(300);
+    expect(find.text('No room left today'), findsOneWidget);
+    await tester.tap(find.widgetWithText(PlannerChip, 'Tomorrow'));
+    await h.settle(300);
+    expect(find.text('No room left today'), findsNothing);
+    expect(find.textContaining('Tomorrow '), findsOneWidget);
+    await h.dispose();
+  });
+
   testWidgets('detail: rows, skip with Undo, delete needs two taps', (tester) async {
     final h = await pumpScenario(tester, Scenario.wed);
     await tester.tap(find.text('Exercise').first);
