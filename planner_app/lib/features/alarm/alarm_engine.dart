@@ -144,7 +144,8 @@ class HeldAlarm {
 /// What a sync changes. Alarms whose planned time has passed are ringing or
 /// snoozed: they are left alone unless their task is finished or gone (the
 /// user answers them on the alarm screen). Everything still ahead follows
-/// the plan exactly.
+/// the plan exactly, and nothing is set for a time already past (a plan
+/// computed earlier may still list one).
 ({List<PlannedAlarm> set, List<int> stop}) alarmDiff({
   required List<HeldAlarm> held,
   required List<PlannedAlarm> plan,
@@ -167,8 +168,9 @@ class HeldAlarm {
     }
   }
   bool same(HeldAlarm? h, PlannedAlarm a) =>
-      h != null && h.alarm == a && h.soundKey == soundKey && h.ringsAt == a.at;
-  return (set: [for (final a in plan) if (!same(keep[a.id], a)) a], stop: stop);
+      h != null && h.alarm == a && h.soundKey == soundKey && h.ringsAt.isAtSameMomentAs(a.at);
+  // Never set a time that has passed: the platform would ring it at once.
+  return (set: [for (final a in plan) if (a.at.isAfter(now) && !same(keep[a.id], a)) a], stop: stop);
 }
 
 /// Full-screen task alarms. The app uses [PluginAlarmEngine] on Android;

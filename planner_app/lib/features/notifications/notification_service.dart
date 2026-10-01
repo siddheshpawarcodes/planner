@@ -242,7 +242,9 @@ class _NotificationHostState extends ConsumerState<NotificationHost> {
       final svc = ref.read(notificationServiceProvider);
       try {
         if (await svc.granted() != true) return;
-        var notes = ref.read(plannedNotesProvider);
+        // The plan is cached; drop anything whose time has passed since.
+        final now = DateTime.now();
+        var notes = [for (final n in ref.read(plannedNotesProvider)) if (n.at.isAfter(now)) n];
         // Full-screen style: task alarms belong to the alarm engine (which
         // rings, fades in and opens the alarm screen); the rest stay here.
         final prefs = ref.read(settingsProvider).alarm;

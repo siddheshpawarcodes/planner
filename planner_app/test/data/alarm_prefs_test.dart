@@ -79,6 +79,9 @@ void main() {
       expect(d.stop, [alarmIdFor('b'), alarmIdFor('c')]);
       expect(d.set.map((a) => a.taskId), ['e'], reason: 'd is unchanged, a is in flight');
 
+      final stale = alarmDiff(held: const [], plan: [alarm('x', past)], openTaskIds: {'x'}, now: now, soundKey: 'k');
+      expect(stale.set, isEmpty, reason: 'a past time would ring at once');
+
       final again = alarmDiff(held: held, plan: [alarm('d', future)], openTaskIds: {'d'}, now: now, soundKey: 'k2');
       expect(again.set.map((a) => a.taskId), ['d'], reason: 'a new tone or fade sets it again');
     });
