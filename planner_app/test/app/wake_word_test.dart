@@ -22,7 +22,7 @@ class FakeSpotter implements WakeWordEngine {
   String? get unavailableReason => null;
 
   @override
-  Future<void> start(VoidCallback onWake) async {
+  Future<void> start(VoidCallback onWake, {List<String> phrases = const []}) async {
     running = true;
     starts++;
     this.onWake = onWake;

@@ -23,26 +23,27 @@ import java.io.IOException
 import kotlin.math.sqrt
 
 /**
- * "Hey Planner" with Vosk, fully offline. Planner records the microphone
- * itself (16 kHz mono) and runs two recognisers over it:
+ * "Hey Planner", fully offline. Planner records the microphone itself
+ * (16 kHz mono) and never hands it over mid-request:
  *
- * - **Listening:** a recogniser limited to a small grammar spots the wake
- *   phrase (see WAKE_START and WAKE_WHOLE). The audio since the last pause
- *   is kept, a few seconds at most.
- * - **Transcribing:** when the phrase is heard mid-sentence, an unrestricted
- *   recogniser takes that kept audio and the live audio after it, so a
- *   request said in one breath ("Hey Planner, add gym tomorrow") arrives
- *   whole: there is no gap while another recogniser starts. Its words go to
- *   Dart as they form; after a pause the sentence is sent as the request.
- *   When only the wake phrase was said (the user paused for the orb), the
- *   microphone is handed to Android's recogniser instead, which is more
- *   accurate for a request said on its own.
+ * - **Listening:** Vosk, limited to a small grammar, spots the wake phrase
+ *   (see WAKE_START and WAKE_WHOLE). The audio since the last pause is kept,
+ *   a few seconds at most.
+ * - **Forwarding** (Android 13+ with an on-device recogniser): on a wake,
+ *   the kept audio and the live audio go to the phone's on-device
+ *   recogniser ([OnDeviceRequest]), which is far more accurate for a
+ *   request than Vosk's small model. Said in one breath ("Hey Planner, add
+ *   gym tomorrow"), the request arrives whole; if only the wake phrase was
+ *   heard, a second pass takes the request after the pause.
+ * - **Transcribing** (fallback): Vosk's unrestricted recogniser does the
+ *   same from the kept audio, and a wake on its own hands the microphone to
+ *   Android's usual recogniser ("handoff").
  *
  * The model ships in the APK (assets/vosk-model) and is copied to app
  * storage once. Dart arms and disarms it (channel planner/wake). Events
  * (planner/wake/events): "wake", "partial:<text>", "level:<0..1>",
  * "request:<text>", "handoff". The microphone is held only while listening
- * or transcribing.
+ * or taking a request.
  */
 class VoskWake(private val context: Context, messenger: BinaryMessenger) {
     companion object {
@@ -51,8 +52,8 @@ class VoskWake(private val context: Context, messenger: BinaryMessenger) {
         private const val RATE = 16000
         private const val CHUNK = 1600 // 0.1 s
         private const val KEEP_CHUNKS = 40 // audio kept since the last pause, at most 4 s
-        private const val END_SILENCE_MS = 1200L // a pause this long ends the request
-        private const val MAX_REQUEST_MS = 15000L
+        private const val END_SILENCE_MS = 1200L // a pause this long ends a Vosk transcript
+        private const val MAX_REQUEST_MS = 20000L
 
         // Tuned on the user's own voice (1 Oct): Vosk often drops a soft
         // "hey" and lands "planner" on a near sound, so the wake phrase is
@@ -64,7 +65,10 @@ class VoskWake(private val context: Context, messenger: BinaryMessenger) {
         private val WAKE_WHOLE = Regex("^(?:(?:hey|a) )?(?:planner|planet|plant|plan(?: a| banner)?)$")
 
         /** The wake phrase (or how it was heard) at the start of a transcript. */
-        private val WAKE_PREFIX = Regex("^(?:(?:hey|hi|a) )?(?:planners?|planet|plant|plan)\\b[ ,]*")
+        private val WAKE_PREFIX = Regex(
+            "^\\W*(?:(?:hey|he|hi|ok|okay|a)\\W+)?(?:planners?|planet|plant|plan)\\b\\W*",
+            RegexOption.IGNORE_CASE
+        )
 
         private val GRAMMAR = listOf(
             "hey planner",
@@ -76,7 +80,7 @@ class VoskWake(private val context: Context, messenger: BinaryMessenger) {
         ).joinToString(",", "[", "]") { "\"$it\"" }
     }
 
-    private enum class Mode { OFF, LISTENING, TRANSCRIBING }
+    private enum class Mode { OFF, LISTENING, FORWARDING, TRANSCRIBING }
 
     private val main = Handler(Looper.getMainLooper())
     private val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
@@ -90,10 +94,22 @@ class VoskWake(private val context: Context, messenger: BinaryMessenger) {
     // Main thread only.
     private var wantListening = false
     private var thread: Thread? = null
+    private var request: OnDeviceRequest? = null
+
+    /** The user's task names, to favour in requests (from Dart at each start). */
+    private var phrases: List<String> = emptyList()
+
+    /** Wait this long for a request after the wake phrase alone. */
+    private val requestWaitMs = 8000L
+    private var forwardedAt = 0L
+
+    /** The on-device recogniser turned Planner's audio down once: use Vosk. */
+    @Volatile private var forwardingBroken = false
 
     // Shared with the audio thread.
     @Volatile private var mode = Mode.OFF
     @Volatile private var running = false
+    @Volatile private var forwardTo: OnDeviceRequest? = null
 
     init {
         LibVosk.setLogLevel(LogLevel.WARNINGS)
@@ -102,20 +118,31 @@ class VoskWake(private val context: Context, messenger: BinaryMessenger) {
                 // Whether this build carries the model, or why not.
                 "status" -> result.success(status())
                 "start" -> {
+                    phrases = call.argument<List<String>>("phrases") ?: phrases
                     wantListening = true
                     ensureModelThenStart()
                     result.success(null)
                 }
-                // Disarm. A request being transcribed carries on: the voice
-                // screen showing it ends it with "endRequest".
+                // Disarm. A request being taken carries on: the voice screen
+                // showing it ends it with "endRequest".
                 "stop" -> {
                     wantListening = false
-                    if (mode != Mode.TRANSCRIBING) stopRecording()
+                    if (mode == Mode.LISTENING) stopRecording()
                     result.success(null)
                 }
                 "endRequest" -> {
-                    if (mode == Mode.TRANSCRIBING) stopRecording()
+                    if (mode == Mode.FORWARDING || mode == Mode.TRANSCRIBING) endRequest()
                     result.success(null)
+                }
+                // Debug: does the recogniser take Planner's own audio?
+                "probe" -> {
+                    val path = call.argument<String>("path") ?: ""
+                    AudioSourceProbe(context).run(
+                        path, call.argument<Boolean>("onDevice") ?: false,
+                        { main.post { result.success(it) } },
+                        bias = call.argument<Boolean>("bias") ?: false,
+                        language = call.argument<String>("language"),
+                    )
                 }
                 else -> result.notImplemented()
             }
@@ -206,15 +233,72 @@ class VoskWake(private val context: Context, messenger: BinaryMessenger) {
         Log.d(TAG, "stopped")
     }
 
-    /** The audio thread: reads the microphone and feeds the recogniser for the current mode. */
+    private fun endRequest() {
+        request?.cancel()
+        request = null
+        forwardTo = null
+        stopRecording()
+    }
+
+    // ---------------------------------------------------------------- forwarding
+
+    /** Main thread: starts the on-device recogniser on [kept] (empty when the wake phrase stood alone). */
+    private fun startForwarding(kept: List<ShortArray>) {
+        forwardedAt = SystemClock.elapsedRealtime()
+        val r = OnDeviceRequest(context, object : OnDeviceRequest.Listener {
+            override fun onWords(text: String) {
+                val shown = text.replaceFirst(WAKE_PREFIX, "")
+                if (shown.isNotBlank()) emit("partial:$shown")
+            }
+
+            override fun onPause(text: String) {
+                val rest = text.replaceFirst(WAKE_PREFIX, "").trim()
+                if (rest.isEmpty() && SystemClock.elapsedRealtime() - forwardedAt < requestWaitMs) {
+                    // Only the wake phrase so far: the request comes after the pause.
+                    Log.d(TAG, "heard \"$text\": waiting for the request")
+                    return
+                }
+                finish(rest)
+            }
+
+            override fun onDone(text: String) = finish(text.replaceFirst(WAKE_PREFIX, "").trim())
+
+            private fun finish(rest: String) {
+                Log.d(TAG, "request: \"$rest\"")
+                emit("request:$rest")
+                endRequest()
+            }
+
+            override fun onUnsupported() {
+                Log.w(TAG, "the on-device recogniser won't take Planner's audio; using Vosk")
+                forwardingBroken = true
+                request = null
+                forwardTo = null
+                // The audio already given is gone; let Android's recogniser
+                // take the request from here.
+                running = false
+                thread?.join(500)
+                thread = null
+                mode = Mode.OFF
+                emit("handoff")
+            }
+        }, phrases)
+        request = r
+        r.start(kept)
+        forwardTo = r
+    }
+
+    // ---------------------------------------------------------------- audio thread
+
+    /** Reads the microphone and feeds whatever the current mode needs. */
     private fun loop(rec: AudioRecord) {
         val buf = ShortArray(CHUNK)
         val kept = ArrayDeque<ShortArray>()
         var lastWake = 0L
-        // Transcribing.
+        var startedAt = 0L
+        // Transcribing with Vosk.
         val said = StringBuilder()
         var partial = ""
-        var startedAt = 0L
         var quietSince = 0L
         try {
             rec.startRecording()
@@ -230,30 +314,52 @@ class VoskWake(private val context: Context, messenger: BinaryMessenger) {
                         val r = spotter ?: break@loop
                         val final = r.acceptWaveForm(chunk, n)
                         val woke = if (final) wakeInFinal(r.result) else WAKE_START.containsMatchIn(partialOf(r.partialResult))
-                        if (woke && now - lastWake > 2000) {
-                            lastWake = now
-                            r.reset()
-                            emit("wake")
-                            if (final) {
-                                // The phrase on its own, then a pause:
-                                // Android's recogniser takes the request.
-                                Log.d(TAG, "wake, then a pause: handing over")
-                                handOver(rec)
-                                return
-                            }
-                            // Mid-sentence: transcribe it from its start.
-                            Log.d(TAG, "wake mid-sentence: transcribing")
+                        if (!woke || now - lastWake < 2000) {
+                            if (final) kept.clear() // a pause: the next utterance starts here
+                            continue@loop
+                        }
+                        lastWake = now
+                        startedAt = now
+                        r.reset()
+                        emit("wake")
+                        val alone = final // the phrase, then a pause
+                        if (!forwardingBroken && OnDeviceRequest.available(context)) {
+                            Log.d(TAG, if (alone) "wake, then a pause: forwarding live audio" else "wake mid-sentence: forwarding")
+                            // The wake phrase and what follows: the last 2.5 s.
+                            val start = if (alone) emptyList() else kept.toList().takeLast(25)
+                            kept.clear()
+                            forwardTo = null
+                            mode = Mode.FORWARDING
+                            main.post { startForwarding(start) }
+                        } else if (alone) {
+                            Log.d(TAG, "wake, then a pause: handing over")
+                            handOver(rec)
+                            return
+                        } else {
+                            Log.d(TAG, "wake mid-sentence: transcribing with Vosk")
                             val t = transcriber ?: break@loop
                             t.reset()
                             for (c in kept) t.acceptWaveForm(c, c.size)
                             kept.clear()
                             said.setLength(0)
                             partial = ""
-                            startedAt = now
                             quietSince = 0L
                             mode = Mode.TRANSCRIBING
-                        } else if (final) {
-                            kept.clear() // a pause: the next utterance starts here
+                        }
+                    }
+                    Mode.FORWARDING -> {
+                        // Until the recogniser is up, chunks wait here.
+                        val to = forwardTo
+                        if (to == null) {
+                            kept.addLast(chunk)
+                        } else {
+                            while (kept.isNotEmpty()) to.offer(kept.removeFirst())
+                            to.offer(chunk)
+                        }
+                        emit("level:${"%.3f".format(level(chunk))}")
+                        if (now - startedAt > MAX_REQUEST_MS) {
+                            main.post { request?.let { endRequest(); emit("request:") } }
+                            break@loop
                         }
                     }
                     Mode.TRANSCRIBING -> {
@@ -264,7 +370,6 @@ class VoskWake(private val context: Context, messenger: BinaryMessenger) {
                             if (seg.isNotEmpty()) said.append(if (said.isEmpty()) seg else " $seg")
                             partial = ""
                             if (said.isNotEmpty() && said.toString().replaceFirst(WAKE_PREFIX, "").isBlank()) {
-                                // Only the wake phrase, then a pause.
                                 Log.d(TAG, "heard only \"$said\": handing over")
                                 handOver(rec)
                                 return
@@ -281,7 +386,7 @@ class VoskWake(private val context: Context, messenger: BinaryMessenger) {
                         val quiet = quietSince > 0 && now - quietSince > END_SILENCE_MS
                         if (quiet || now - startedAt > MAX_REQUEST_MS) {
                             if (said.isEmpty()) said.append(JSONObject(t.finalResult).optString("text").trim())
-                            Log.d(TAG, "request: \"$said\"")
+                            Log.d(TAG, "request (Vosk): \"$said\"")
                             emit("request:$said")
                             break@loop
                         }
@@ -347,6 +452,8 @@ class VoskWake(private val context: Context, messenger: BinaryMessenger) {
 
     fun dispose() {
         wantListening = false
+        request?.cancel()
+        request = null
         stopRecording()
         spotter?.close()
         transcriber?.close()

@@ -97,12 +97,16 @@ class VoskWakeWordEngine implements WakeWordEngine {
   }
 
   @override
-  Future<void> start(VoidCallback onWake) async {
+  Future<void> start(VoidCallback onWake, {List<String> phrases = const []}) async {
     if (!available) return;
     _onWake = onWake;
     // Never ask for the microphone just to arm the wake phrase.
     if (!await Permission.microphone.isGranted) return;
-    await _call('start');
+    try {
+      await _ch.invokeMethod('start', {'phrases': phrases});
+    } on PlatformException catch (e) {
+      if (kDebugMode) debugPrint('[wake] start: ${e.message}');
+    }
   }
 
   @override

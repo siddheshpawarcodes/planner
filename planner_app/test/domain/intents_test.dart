@@ -177,6 +177,8 @@ void main() {
     expect(stripWakeResidue('add gym tomorrow'), 'add gym tomorrow');
     expect(stripWakeResidue('at 7 call mum'), 'at 7 call mum', reason: 'a time stays a time');
     expect(stripWakeResidue('plan my evening'), 'plan my evening');
+    expect(stripWakeResidue('and gym at 9 pm tomorrow'), 'add gym at 9 pm tomorrow');
+    expect(stripWakeResidue('he planner add gym'), 'add gym');
     final i = parseUtterance(stripWakeResidue('Hitler at gym tomorrow for 1 hour'), today: 100);
     expect((i.kind, i.day, i.tasks.single.title, i.tasks.single.duration), (IntentKind.add, 101, 'Gym', 60));
   });
@@ -240,7 +242,7 @@ void main() {
       final i = parseUtterance(u, today: tue);
       expect(i.kind, IntentKind.delete, reason: u);
       final r = resolveIntent(i, tasks: plan, routine: routine, today: tue, now: 1180, newId: () => 'x');
-      return r.effect is DeleteEffect ? '${(r.effect as DeleteEffect).task.id}' : r.summary;
+      return r.effect is DeleteEffect ? (r.effect as DeleteEffect).task.id : r.summary;
     }
 
     test('natural ways of saying it', () {

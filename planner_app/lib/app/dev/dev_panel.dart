@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/settings.dart';
@@ -175,6 +179,24 @@ class DevPanel extends ConsumerWidget {
             final at = DateTime.now().add(const Duration(minutes: 1));
             ref.read(testAlarmProvider.notifier).set(at);
             ref.read(noteProvider.notifier).say('Test alarm set for ${fmt(at.hour * 60 + at.minute)}.');
+          },
+        ),
+        SecondaryPill(
+          label: 'Probe recogniser',
+          height: 36,
+          onTap: () async {
+            const ch = MethodChannel('planner/wake');
+            final dir = (await getApplicationSupportDirectory()).parent.path;
+            // Every clip in files/probe/ under each setting (on-device).
+            final clips = Directory('$dir/files/probe').listSync().whereType<File>().toList()
+              ..sort((a, b) => a.path.compareTo(b.path));
+            for (final f in clips) {
+              for (final (bias, lang) in [(false, null), (true, null), (true, 'en-IN')]) {
+                final r = await ch.invokeMethod<String>(
+                    'probe', {'path': f.path, 'onDevice': true, 'bias': bias, 'language': lang});
+                debugPrint('[probe] ${f.uri.pathSegments.last} bias=$bias lang=$lang: $r');
+              }
+            }
           },
         ),
         SecondaryPill(

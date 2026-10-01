@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/state/derived.dart';
+import '../../app/state/store.dart';
 import '../../app/state/ui_state.dart';
 import 'speech.dart';
 import 'voice_controller.dart';
@@ -22,7 +23,9 @@ abstract class WakeWordEngine {
   String? get unavailableReason;
 
   /// Starts listening for the phrase; [onWake] fires once per detection.
-  Future<void> start(VoidCallback onWake);
+  /// [phrases] are words a request is likely to contain (the user's task
+  /// names), for engines that can favour them.
+  Future<void> start(VoidCallback onWake, {List<String> phrases = const []});
 
   /// Stops listening and releases the microphone.
   Future<void> stop();
@@ -41,7 +44,7 @@ class NoWakeWordEngine implements WakeWordEngine {
   @override
   final String? unavailableReason;
   @override
-  Future<void> start(VoidCallback onWake) async {}
+  Future<void> start(VoidCallback onWake, {List<String> phrases = const []}) async {}
   @override
   Future<void> stop() async {}
   @override
@@ -155,9 +158,16 @@ class _WakeWordHostState extends ConsumerState<WakeWordHost> {
     _arm = Timer(_armDelay, () {
       if (!mounted || !ref.read(wakeGateProvider).armed || _running) return;
       _running = true;
-      _engine.start(_heard);
+      _engine.start(_heard, phrases: _phrases());
     });
   }
+
+  /// Task names on the plan, so the recogniser favours them ("Study
+  /// polity" over sound-alikes).
+  List<String> _phrases() => {
+        for (final t in ref.read(plannerStoreProvider).tasks)
+          if (!t.deleted && !t.done) t.title,
+      }.take(60).toList();
 
   /// "Hey Planner": the engine either keeps the microphone and passes on the
   /// rest of the sentence, or releases it first; then voice opens.
