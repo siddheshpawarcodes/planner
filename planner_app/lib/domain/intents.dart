@@ -65,9 +65,13 @@ const _weekdays = [
 ];
 
 /// Lower-cases, strips punctuation and turns number words into digits.
+/// Times and decimals stay whole ("3:00 p.m." is "3:00 pm", "1.5 hours"
+/// keeps its point): the recogniser writes them with the same dots and
+/// colons that otherwise end a phrase.
 String normalizeUtterance(String s) {
   var t = s.toLowerCase().replaceAll(RegExp(r"[’']"), "'");
-  t = t.replaceAll(RegExp(r'[.,!?;:"“”]'), ' ,');
+  t = t.replaceAllMapped(RegExp(r'(?<=\d)\s*([ap])\.\s?m\b\.?'), (m) => ' ${m[1]}m');
+  t = t.replaceAll(RegExp(r'[,!?;"“”]|(?<!\d)[.:]|[.:](?!\d)'), ' ,');
   t = t.replaceAll(RegExp(r'\s+'), ' ').trim();
   t = t.replaceAll(RegExp(r'\s+,'), ',');
   final out = <String>[];
@@ -105,7 +109,12 @@ String normalizeUtterance(String s) {
       .replaceAll(RegExp(r'\bhalf an hour\b'), '30 minutes')
       .replaceAll(RegExp(r'\b(a )?quarter of an hour\b'), '15 minutes')
       .replaceAllMapped(RegExp(r'\b(\d+) and a half (hours|hrs)\b'), (m) => '${m[1]}.5 hours')
-      .replaceAll(RegExp(r'\b(an|a) (hour|hr)\b'), '1 hour');
+      .replaceAll(RegExp(r'\b(an|a) (hour|hr)\b'), '1 hour')
+      // "six thirty pm", "at 6 30": a spoken time with its minutes.
+      .replaceAllMapped(RegExp(r'\b(\d{1,2}) ([0-5]\d)\b(?= ?(am|pm)\b)'), (m) => '${m[1]}:${m[2]}')
+      .replaceAllMapped(RegExp(r'\bat (\d{1,2}) ([0-5]\d)\b(?! ?(hours?|hrs?|h|minutes?|mins?|m)\b)'),
+          (m) => 'at ${m[1]}:${m[2]}')
+      .replaceAll(RegExp(r"\bo ?'? ?clock\b"), "o'clock");
   return r;
 }
 
@@ -138,7 +147,30 @@ String stripWakeResidue(String text) {
 }
 
 final _durRe = RegExp(r'\b(?:for )?(\d+(?:\.\d+)?)\s*(hours?|hrs?|h|minutes?|mins?|m)\b');
-final _atRe = RegExp(r'\bat (\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|a m|p m)?\b');
+/// A clock time, in the ways people say one: "at 7", "at 6:30 pm",
+/// "6:00 in the evening", "15:00", "for 3 pm", "around 4 o'clock".
+final _timeRes = [
+  RegExp(r"\bat (\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|a m|p m|o'clock)?\b"),
+  RegExp(r"\b(?:by |for |around |from )?(\d{1,2})[:.](\d{2})\s*(am|pm|a m|p m|o'clock)?\b"),
+  RegExp(r"\b(?:by |for |around |from )?(\d{1,2})()\s*(am|pm|a m|p m|o'clock)\b"),
+];
+
+RegExpMatch? _timeMatch(String s) {
+  for (final r in _timeRes) {
+    final m = r.firstMatch(s);
+    if (m != null) return m;
+  }
+  return null;
+}
+
+/// Removes every clock time from [s] (for titles and queries).
+String _withoutTimes(String s) {
+  var t = s;
+  for (final r in _timeRes) {
+    t = t.replaceAll(r, ' ');
+  }
+  return t;
+}
 
 int? _parseDuration(String s) {
   final m = _durRe.firstMatch(s);
@@ -150,17 +182,19 @@ int? _parseDuration(String s) {
 }
 
 int? _parseAt(String s) {
-  final m = _atRe.firstMatch(s);
+  final m = _timeMatch(s);
   if (m == null) return null;
   var h = int.parse(m[1]!);
-  final min = m[2] == null ? 0 : int.parse(m[2]!);
+  final min = (m[2] ?? '').isEmpty ? 0 : int.parse(m[2]!);
   final ap = m[3]?.replaceAll(' ', '');
   if (h > 23 || min > 59) return null;
   if (ap == 'pm' && h < 12) h += 12;
   if (ap == 'am' && h == 12) h = 0;
-  if (ap == null) {
-    if (h >= 1 && h <= 6) h += 12;
-    if (h >= 7 && h <= 11 && RegExp(r'\b(evening|tonight|night)\b').hasMatch(s)) h += 12;
+  if (ap != 'am' && ap != 'pm' && h <= 12) {
+    // No am or pm: plans are mostly for the evening, unless it says morning.
+    final morning = RegExp(r'\bmorning\b').hasMatch(s);
+    if (!morning && h >= 1 && h <= 6) h += 12;
+    if (!morning && h >= 7 && h <= 11 && RegExp(r'\b(evening|tonight|night)\b').hasMatch(s)) h += 12;
   }
   return h * 60 + min;
 }
@@ -207,7 +241,7 @@ final _dayWordRe = RegExp(
 /// Strips filler, day, time and duration words, leaving the title.
 String _titleOf(String chunk) {
   var t = chunk.replaceAll(',', ' ');
-  t = t.replaceAll(_durRe, ' ').replaceAll(_atRe, ' ').replaceAll(_dayWordRe, ' ');
+  t = _withoutTimes(t.replaceAll(_durRe, ' ')).replaceAll(_dayWordRe, ' ');
   t = t.replaceAll(RegExp(r'\bfor\b\s*$'), ' ');
   t = t.replaceAll(RegExp(r'\s+'), ' ').trim();
   var changed = true;
@@ -257,7 +291,7 @@ const _stop = {
 };
 
 String? _queryOf(String s) {
-  final t = s.replaceAll(_dayWordRe, ' ').replaceAll(_atRe, ' ').replaceAll(_durRe, ' ');
+  final t = _withoutTimes(s.replaceAll(_dayWordRe, ' ')).replaceAll(_durRe, ' ');
   final words = t
       .split(RegExp(r'[\s,]+'))
       .where((w) => w.isNotEmpty && !_stop.contains(w))
@@ -364,7 +398,10 @@ VoiceIntent parseUtterance(String utterance, {required int today}) {
   final slotted = tasks.any((t) => t.duration != null || t.day != null || t.at != null || t.offset != null) ||
       day != null ||
       pref != null;
-  if (tasks.isEmpty || (!addy && !slotted)) return withKeys(const VoiceIntent(IntentKind.unknown));
+  if (tasks.isEmpty || (!addy && !slotted)) {
+    // Keep a time or day it did hear, so the reply can ask for the rest.
+    return withKeys(VoiceIntent(IntentKind.unknown, day: day, at: _parseAt(s)));
+  }
   return withKeys(VoiceIntent(IntentKind.add, tasks: tasks, day: day, pref: pref, at: _parseAt(s)));
 }
 
@@ -591,6 +628,19 @@ VoiceResolution resolveIntent(
             ? 'Tomorrow evening is full, so Planner found the next free hour.'
             : '${dayLongNames[weekday0(requested)]} is full, so Planner found the next free hour.';
       }
+      // An asked-for time that wasn't free: say why, never move it silently.
+      final asked = specs.length == 1 ? specs.first.at : null;
+      if (!evening && asked != null && res.placed.first.slot.start != asked && summary.isEmpty) {
+        final askedDay = specs.first.day ?? tom;
+        final blocker = baseItems(askedDay, r).where((b) =>
+            (b.kind == ItemKind.fixed || b.kind == ItemKind.protected) && b.start <= asked && asked < b.end);
+        final why = blocker.isNotEmpty
+            ? '${fmt(asked)} is during ${blocker.first.title}'
+            : asked < r.wake
+                ? '${fmt(asked)} is before you wake up'
+                : '${fmt(asked)} is already taken';
+        summary = '$why, so Planner found ${fmt(res.placed.first.slot.start)}.';
+      }
       if (res.left.isNotEmpty) {
         final names = res.left.map((x) => x.title).join(', ');
         final many = res.left.length > 1;
@@ -744,9 +794,15 @@ VoiceResolution resolveIntent(
       );
 
     case IntentKind.unknown:
-      return const VoiceResolution(
+      final heard = [
+        if (i.day != null) i.day == today ? 'today' : (i.day == today + 1 ? 'tomorrow' : dayLongNames[weekday0(i.day!)]),
+        if (i.at != null) fmt(i.at!),
+      ];
+      return VoiceResolution(
         label: 'NOT SURE',
-        summary: "Planner didn't catch a plan in that. Try “Add gym tomorrow for one hour.”",
+        summary: heard.isEmpty
+            ? "Planner didn't catch a plan in that. Try “Add gym tomorrow for one hour.”"
+            : 'Planner heard ${heard.join(' at ')} but not what to plan. Try “Add gym ${heard.join(' at ')}.”',
         wait: VoiceWait.answer,
       );
   }

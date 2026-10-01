@@ -6,6 +6,7 @@ import 'package:planner_app/app/state/store.dart';
 import 'package:planner_app/app/state/ui_state.dart';
 import 'package:planner_app/features/voice/planner_orb.dart';
 import 'package:planner_app/features/voice/voice_controller.dart';
+import 'package:planner_app/features/voice/speech.dart';
 import 'package:planner_app/features/voice/wake_word.dart';
 
 import 'harness.dart';
@@ -29,6 +30,9 @@ class FakeSpotter implements WakeWordEngine {
 
   @override
   Future<void> stop() async => running = false;
+
+  @override
+  HandOverSpeech? takeOver() => null;
 
   void hear() => onWake?.call();
 }

@@ -121,9 +121,13 @@ class VoiceController extends Notifier<VoiceState> {
 
   /// "Hey Planner" was heard (or simulated from the developer panel). It
   /// only works while Today is open on screen (prototype `sayHey`).
-  void sayHey() {
+  ///
+  /// [input] is the rest of the sentence the wake-word engine is still
+  /// hearing, if it kept the microphone.
+  void sayHey({HandOverSpeech? input}) {
     final gate = ref.read(wakeRouteProvider);
     final note = ref.read(noteProvider.notifier);
+    if (!gate.onToday || !gate.enabled || state.open) input?.cancel();
     if (!gate.onToday) {
       note.say('“Hey Planner” works only while Today is open on screen.');
       return;
@@ -132,21 +136,22 @@ class VoiceController extends Notifier<VoiceState> {
       note.say('The wake phrase is off. Turn it on in Settings, Voice.');
       return;
     }
-    if (!state.open) tapOrb(fromWake: true);
+    if (!state.open) tapOrb(fromWake: true, input: input);
   }
 
   /// This session was opened by the wake phrase (see [stripWakeResidue]).
   bool _fromWake = false;
 
   /// Orb tap (prototype `tapOrb`): works anywhere in the app.
-  Future<void> tapOrb({bool fromWake = false}) async {
+  Future<void> tapOrb({bool fromWake = false, HandOverSpeech? input}) async {
     if (state.open) return veilTap();
     _fromWake = fromWake;
     seq.clear();
     ref.read(orbControllerProvider).tapImpulse();
     Haptics.orb();
     ref.read(sheetProvider.notifier).close();
-    final speech = _speech = _input();
+    input?.fallback ??= _input;
+    final speech = _speech = input ?? _input();
     state = VoiceState(phase: OrbState.wake, live: speech.isLive);
     final access = await speech.prepare();
     final t = 900 * _m;

@@ -180,4 +180,53 @@ void main() {
     final i = parseUtterance(stripWakeResidue('Hitler at gym tomorrow for 1 hour'), today: 100);
     expect((i.kind, i.day, i.tasks.single.title, i.tasks.single.duration), (IntentKind.add, 101, 'Gym', 60));
   });
+
+  group('clock times, as the recogniser writes them', () {
+    SpokenTask one(String u) {
+      final i = parseUtterance(u, today: 100);
+      expect(i.kind, IntentKind.add, reason: u);
+      expect(i.tasks.length, 1, reason: '$u -> ${i.tasks.map((t) => t.title)}');
+      return i.tasks.single;
+    }
+
+    test('"3:00 p.m." stays one time, not three tasks', () {
+      final t = one('remind me to shop groceries tomorrow at 3:00 p.m.');
+      expect((t.title, t.at, t.duration, t.day), ('Shop groceries', 900, 15, 101));
+    });
+
+    test('a time without "at", and the part of the day', () {
+      final t = one('I want to go to gym tomorrow 6:00 in the evening');
+      expect((t.title, t.at, t.day), ('Go to gym', 1080, 101));
+      expect(one('add gym for 3 pm').at, 900);
+      expect(one('call mum at 9 tonight').at, 1260);
+      expect(one('run at 7 in the morning').at, 420);
+      expect(one('run 6:30 in the morning').at, 390);
+      expect(one('read at 15:00').at, 900);
+      expect(one('add study around 4 o\'clock').at, 960);
+      expect(one('add study at six thirty pm').at, 1110);
+      expect(one('study at 2.30 pm for 1 hour').at, 870);
+    });
+
+    test('decimals and plain numbers are still lengths', () {
+      final t = one('add reading for 1.5 hours tomorrow');
+      expect((t.title, t.duration, t.at), ('Reading', 90, null));
+      expect(one('study polity for 45 minutes').duration, 45);
+    });
+  });
+
+  test('a time with nothing to do asks for the rest', () {
+    final i = parseUtterance('add task for 3 pm tomorrow', today: 100);
+    expect((i.kind, i.at, i.day), (IntentKind.unknown, 900, 101));
+  });
+
+  test('an asked-for time in fixed time is moved, and the summary says why', () {
+    final i = parseUtterance('remind me to shop groceries tomorrow at 3:00 p.m.', today: tue);
+    var n = 0;
+    final r = resolveIntent(i, tasks: const [], routine: routine, today: tue, now: 840, newId: () => 'x${n++}');
+    expect(r.rows.single.detail, '15m, 20:00');
+    expect(r.summary, '15:00 is during Office, so Planner found 20:00.');
+    final ok = resolveIntent(parseUtterance('add gym tomorrow at 9 pm', today: tue),
+        tasks: const [], routine: routine, today: tue, now: 840, newId: () => 'y${n++}');
+    expect((ok.rows.single.detail, ok.summary), ('1h, 21:00', ''));
+  });
 }

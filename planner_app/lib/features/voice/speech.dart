@@ -38,6 +38,14 @@ abstract class SpeechInput {
   bool get isLive;
 }
 
+/// Speech a wake-word engine was already hearing when it woke Planner: the
+/// rest of that sentence, with no gap while another recogniser starts. When
+/// only the wake phrase was said, it hands over to [fallback] (the device
+/// recogniser) for the request.
+abstract class HandOverSpeech implements SpeechInput {
+  SpeechInput Function()? fallback;
+}
+
 /// The device recogniser (`speech_to_text`). Its sound-level stream drives
 /// the orb, so no second recorder competes for the microphone.
 class DeviceSpeech implements SpeechInput {

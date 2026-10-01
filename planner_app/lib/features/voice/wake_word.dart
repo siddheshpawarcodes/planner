@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/state/derived.dart';
 import '../../app/state/ui_state.dart';
+import 'speech.dart';
 import 'voice_controller.dart';
 
 /// An on-device keyword spotter for "Hey Planner" (README 6.3). It runs only
@@ -25,6 +26,11 @@ abstract class WakeWordEngine {
 
   /// Stops listening and releases the microphone.
   Future<void> stop();
+
+  /// Right after a wake: the sentence the engine is still hearing, as speech
+  /// input for the voice screen, or null when it has let go of the
+  /// microphone (the device recogniser takes the request).
+  HandOverSpeech? takeOver();
 }
 
 /// Tap-to-talk only: tests, and platforms without a spotter.
@@ -38,6 +44,8 @@ class NoWakeWordEngine implements WakeWordEngine {
   Future<void> start(VoidCallback onWake) async {}
   @override
   Future<void> stop() async {}
+  @override
+  HandOverSpeech? takeOver() => null;
 }
 
 final wakeWordEngineProvider = Provider<WakeWordEngine>((ref) => const NoWakeWordEngine());
@@ -151,12 +159,18 @@ class _WakeWordHostState extends ConsumerState<WakeWordHost> {
     });
   }
 
-  /// "Hey Planner": release the microphone first, then open voice.
+  /// "Hey Planner": the engine either keeps the microphone and passes on the
+  /// rest of the sentence, or releases it first; then voice opens.
   Future<void> _heard() async {
     if (!_running) return;
     _running = false;
-    await _engine.stop();
-    if (mounted) ref.read(voiceControllerProvider.notifier).sayHey();
+    final rest = _engine.takeOver();
+    if (rest == null) await _engine.stop();
+    if (mounted) {
+      ref.read(voiceControllerProvider.notifier).sayHey(input: rest);
+    } else {
+      await rest?.cancel();
+    }
   }
 
   @override
