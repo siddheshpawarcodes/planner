@@ -6,30 +6,56 @@ new session should read this file first, then `planner-final-handoff/README.md`
 (the exact prototype logic). Everything decided so far is recorded here, so
 nothing needs to be re-derived.
 
-Last updated: 1 October 2026, day 3. All ten milestones, the README 11 acceptance test, full-screen customisable alarms and a free Vosk "Hey Planner" are built; what remains is on-device verification (see "Start here").
+Last updated: 1 October 2026, end of day 3. Everything is built and committed; the open work is voice accuracy on the user's accent, Google Drive on the phone, and a few on-device checks (see "Start here").
 
 ---
 
-## 0. Start here (state on day 3)
+## 0. Start here (handoff for a new chat, end of day 3)
 
-**Code:** everything is committed on `main` (181 tests passing plus the device acceptance test, analyzer clean). The last commits may not be on GitHub yet: run `git log --oneline origin/main..HEAD`; anything listed needs `git -c credential.helper= push origin main` (the user signs in as siddheshpawarcodes with a personal access token, see section 9).
+**Code:** all committed on `main` and pushed to GitHub (`d4da831` and earlier; nothing ahead or behind on 1 Oct). 181 tests pass (`flutter test`), analyzer clean; the device acceptance test is `flutter test integration_test -d macos` (about 1 min). Check with `git log --oneline origin/main..HEAD`; anything listed needs `git -c credential.helper= push origin main`, which the user runs themselves (they type `siddheshpawarcodes` and paste their own token; never ask for it). Commit rules: section 9 (author Siddhesh Pawar, no AI attribution anywhere).
 
-**Waiting on the user:**
-1. **"Hey Planner" is now Vosk** (1 Oct; Porcupine removed, see decision 50). Built and unit-tested. **On the Motorola (1 Oct, 12:36):** the bundled model unpacked and loaded (`VoskWake: model ready`), it listened on Today, stopped when another app came to the front and re-armed when Planner returned. **Spoken tests (1 Oct, 14:09-14:23):** with the first rule (exact "hey planner" only, near-miss decoys) the user had to say it 3-4 times: logged alternatives showed their "hey planner" landing on "hey plan", "hey planet", "planner" or "a planner", often with "hey planner" a close second. After re-tuning (decision 50) it woke on 8 of 9 tries (the miss heard only "hey"). **Requests after a wake:** now forwarded to the on-device recogniser with no gap (decision 51); short words in the user's accent are still misheard. **To run next:** Settings › Developer › Probe recogniser (Indian-English clips from the Mac's Rishi voice are in `files/probe/` on the phone; it compares biasing off/on and `en-IN`, results as `[probe]` lines in the `flutter run` log). Background talk nearby can also wake it and fill a request. Next time: `flutter run -d ZD222MDN6H` (no dart-defines any more), open Today, and say "Hey Planner"; watch logcat for `VoskWake` (`model ready`, `listening`, `wake: "..."`) and the `[wake]` lines in the `flutter run` log. The first arm copies the model to app storage (a few seconds). Also try near-misses ("hey planet", "okay planner") and normal talk; neither should wake it. On a fresh clone run `planner_app/tool/fetch_vosk_model.sh` before building for Android.
-2. **iOS OAuth client for Drive:** deferred by the user; do not block on it.
+**User preferences that hold for every session:**
+- Everything free of cost (no paid services or trials). This is why "Hey Planner" is Vosk, not Picovoice (decision 50).
+- Phones stay in portrait (decision 53).
+- Real launches use the live microphone; the demo voice only runs in tests and `PLANNER_SCENARIO` builds.
+- The user will grant permissions, pick accounts and choose gallery media themselves; never tap those for them.
 
-**Full-screen alarms (built 1 Oct, verified on the Motorola):** in-app ring; Snooze (rang 10 min later); slide to Done over the lock screen (returned to the lock screen); a ring with Planner's process killed (cold start, Aurora and the slide track drawn correctly on the current build); a chosen phone tone (Helium, copied to `files/alarm_tones/`, played by the service); the 15 s gentle start (volume rose 0 → 1 in steps over 15 s); Start now, unlocked and after a cold start (sound stops, Planner stays on Today). The quiet-banner swap: verified (a burst of screenshots across an in-app ring shows no heads-up; the notification sits on `planner_alarm_quiet`). **Still to check:** Start now with the lock screen up (it should ask to unlock), and a photo and a video background (the user picks them: the picker shows their gallery). The user's choices on 1 Oct: Full screen, Aurora, slide to confirm, 15 s gentle start, Helium.
-**Heads-up banner over the alarm screen:** the plugin's notification channel is IMPORTANCE_HIGH (needed for the full-screen intent), so Android adds a heads-up banner while the phone is in use. Once Planner's screen shows an alarm, `AlarmHost` calls `quietBanner`: `MainActivity` re-posts the notification under the same id (still the service's foreground notification) on channel `planner_alarm_quiet` (IMPORTANCE_LOW, silent), which takes the banner down; Stop and tap-to-open remain in the shade. On the Motorola no banner showed at all in a burst of screenshots across the ring.
+### Next up, in order
 
-**To verify on the Motorola next time it is plugged in** (`adb devices` shows `ZD222MDN6H`):
-- **Google Drive (real, Android):** Settings › Backup › Google Drive › Connect. Expect Google's account picker and consent, then "Backed up just now". If it fails, read `[drive]` lines in the `flutter run` log. Cloud-side prerequisites: Drive API enabled; the account is a test user while the consent screen is in Testing; Android OAuth client = `com.planner.planner_app` + SHA-1 `EE:51:6E:0B:9D:5D:4A:A2:94:AF:95:6F:FD:33:D1:6C:77:B9:2B:2D` (this Mac's debug keystore; verified matching).
-- ~~Task alarms~~ **verified on the Motorola, 1 Oct:** with notifications and "Alarms & reminders" granted, every task gets an exact alarm-clock alarm (Android's next alarm clock showed Study polity at 20:00, its reminder at 19:55). Completing Study polity removed its alarm from `dumpsys alarm`; un-completing it brought it back. Settings › Developer › "Test alarm in 1 minute" rang on time: channel `planner_alarm`, category alarm, flags INSISTENT, playing on USAGE_ALARM, shown as a heads-up. Note: the phone's alarm volume was 1 of 7 (the user's setting, left alone), and Bedtime mode allows alarms. A task can't be placed a few minutes ahead during office hours (by design), hence the debug alarm. Swiping the heads-up up only moves it to the shade; it keeps ringing until swiped away there or tapped.
-- **Notifications (granted on the Motorola, 1 Oct):** the permission prompt appears once, after onboarding (Settings › Delete all data re-runs onboarding on a device with demo data). **Fixed on 1 Oct:** before that the prompt never showed (it was read through the unmounted onboarding page's `ref` and threw), which is why the Motorola still said "Notifications are off for Planner". On 1 Oct the user was asked to tap Allow for notifications and for "Alarms & reminders" themselves (permission grants are the user's); once granted, the task-alarm check below can run.
-- Orb reaction to the real microphone (not flat or maxed out) and haptics.
+1. **Voice accuracy on the user's accent (in progress).** State: the wake word is good (8 of 9 on the user's voice after tuning, decision 50). Requests after a wake reach the phone's on-device recogniser with no gap (decision 51), but short words are misheard: "add gym" came back as "adjint", "and g", "details"; "gym" alone often vanishes. Already tried: biasing strings (commands + the user's task names), pacing the backlog at 2× (fixed lost words), reading a leading "and"/"at" as "add". Next steps, in order:
+   a. **Run the probe matrix:** Planner on Settings › Developer › **Probe recogniser**. It plays the five Indian-English clips already on the phone in `files/probe/01-05.wav` (made with the Mac's `Rishi` voice: "Hey Planner, add gym tomorrow at 9 pm", "add gym for one hour", "delete gym", "remind me to call mum at 8 pm", "add yoga tomorrow morning") through the on-device recogniser with biasing off, biasing on, and biasing on + `en-IN`; results are `[probe] NN.wav bias=… lang=…: <text>` lines in the `flutter run` log (about 75 s). Use what helps in `OnDeviceRequest.kt`. Clips are made on the Mac with `say -v Rishi -o x.wav --data-format=LEI16@16000 "…"`, then rewritten with Python's `wave` (Apple adds a header chunk), pushed to `/data/local/tmp` and copied in with `run-as com.planner.planner_app cp`.
+   b. If still poor: **a second opinion from Vosk** in a grammar of Planner's words (commands, days, times, numbers, common activities, the user's task-title words) run on the same audio, used to correct out-of-vocabulary tokens in Google's text ("adjint" → "add gym").
+   c. With the user's explicit OK only: a debug option that saves a few of the user's own wake/request clips on the phone for offline tuning (Vosk rules, the Indian-English model `vosk-model-small-en-in-0.4`, about 36 MB). Not built; nothing is recorded today.
+   d. **Background talk** (other people nearby) can trigger a wake and fill a request (seen with Hindi conversation on 1 Oct). Not addressed yet.
+2. **Google Drive on the phone (real client, never run yet).** The user taps Settings › Backup › Google Drive › Connect and approves Google's consent themselves; watch `[drive]` lines in the `flutter run` log. Prerequisites: Drive API enabled; the account is a test user while the consent screen is in Testing; Android OAuth client `com.planner.planner_app` + SHA-1 `EE:51:6E:0B:9D:5D:4A:A2:94:AF:95:6F:FD:33:D1:6C:77:B9:2B:2D` (this Mac's debug keystore). iOS Drive is deferred by the user.
+3. **Remaining on-device checks:** voice delete on the phone ("Hey Planner, delete gym"); alarm Start now with the lock screen up (should ask to unlock); a photo and a video alarm background (the user picks the media); orb level with the live mic, and haptics.
+4. Backlog in section 8.
 
-**Device etiquette (precautions for driving the user's own phone):** check a screenshot before any adb tap; if another app, the notification shade or quick settings is open, stop and ask. Never touch system settings (Do Not Disturb was seen on; it was not changed by us). Don't repeat anything personal seen on screen. Screenshots: `adb -s ZD222MDN6H exec-out screencap -p > shot.png`.
+### How to test voice on the phone
 
-**Builds on the phone:** the installed build runs on the real clock and keeps its data (built without `PLANNER_SCENARIO`). Builds made with `--dart-define=PLANNER_SCENARIO=…` reset to demo data on every launch.
+- Build and run: `cd planner_app && flutter run -d ZD222MDN6H` (no dart-defines). On a fresh clone first run `tool/fetch_vosk_model.sh` (the 68 MB model is git-ignored). Changes to Kotlin, the manifest or Riverpod providers need a full `flutter run`, not a hot reload; a cold start of the app (process killed) runs the installed build, not hot-reloaded code.
+- Logs: `adb -s ZD222MDN6H logcat -v time VoskWake:D OnDeviceRequest:D flutter:I '*:S'`. Useful lines: `VoskWake: heard: a | b | c` (the spotter's top three guesses with scores), `wake mid-sentence: forwarding`, `OnDeviceRequest: partial "…"`, `VoskWake: request: "…"`, and Dart's `[wake] heard` / `[wake] request` / `[speech] …`. Filter tightly when streaming: partials flood.
+- Wake tuning on the Mac: a Python venv with `pip install vosk`, the model from alphacephei, and `say` clips; the rules in `VoskWake.kt` (`WAKE_START`, `WAKE_WHOLE`, top-3 within 5%) were checked that way against near-misses and normal sentences.
+- The wake phrase only listens on Today; to work on the phone without stray wakes, drive it from Plan or Settings.
+
+### Device etiquette (driving the user's own phone, learned the hard way)
+
+- Screenshot before tapping. If another app, the notification shade or quick settings is in front, stop and ask; never act inside another app (on 1 Oct two taps landed in the user's work app after they switched apps and opened its share screen; nothing was sent).
+- Use the guard: only tap while `dumpsys activity activities | grep topResumedActivity` shows `com.planner.planner_app` (a small `ptap.sh` did this; recreate it in the scratchpad).
+- Screenshots are 1220 × 2712; when resized for reading, scale taps back by the real factor (a `-Z 400` image is 180 × 400, not 400 wide).
+- Delete in a detail sheet needs two taps within 4 s: send both in one command (separate steps were too slow and only re-armed it).
+- Never touch system settings, permission dialogs, account pickers or the lock screen PIN. Don't repeat anything personal seen on screen (other apps, notifications, wallpaper).
+- Screenshots: `adb -s ZD222MDN6H exec-out screencap -p > shot.png`. Planner's database for read-only checks: `adb exec-out run-as com.planner.planner_app cat app_flutter/planner.sqlite` (and `-wal`).
+
+### Phone state at the end of day 3
+
+- Plan: today (Thu 1 Oct) Study polity (done), Exercise 22:15, Learn Flutter 23:00; inbox Read Laxmikanth ch. 4, Call family, Plan the week. All demo and test leftovers were deleted at the user's request.
+- Alarm style Full screen, Aurora look, slide to confirm, 15 s gentle start, tone Helium. Notifications and "Alarms & reminders" granted. Alarm volume is 1 of 7 (the user's setting, left alone).
+- The installed build is a debug build of `b7a1e6f`+ with the voice forwarding and the probe button.
+
+### Verified on the Motorola on day 3
+
+Task alarms (exact alarm-clock alarms; completing a task removes its alarm); notifications prompt fix; full-screen alarms (in-app ring, Snooze after 10 min, slide to Done over the lock screen returning to it, cold start with the process killed, chosen tone, gentle fade, Start now, no heads-up banner over the alarm screen); Vosk wake word; requests forwarded to the on-device recogniser; time parsing fixes. Details in decisions 44-53.
 
 ---
 
@@ -88,6 +114,11 @@ Regenerate Drift code after editing tables: `dart run build_runner build`.
 PROGRESS.md                    this file
 planner-final-handoff/         the design handoff (spec, prototype logic, HTML boards). Reference only.
 planner_app/
+  android/app/src/main/kotlin/com/planner/planner_app/
+                               MainActivity (lock screen, tones, quiet banner, planner/alarm), VoskWake (wake word,
+                               microphone, planner/wake), OnDeviceRequest (on-device recogniser fed Planner's audio),
+                               AudioSourceProbe (debug)
+  android/app/src/main/assets/vosk-model/   the Vosk model (git-ignored; tool/fetch_vosk_model.sh)
   assets/fonts/                Geist, Geist Mono, Bricolage Grotesque (variable TTFs + OFL licences)
   lib/
     main.dart                  opens Drift, loads data before runApp, optional debug scenario
@@ -266,9 +297,9 @@ All in `test/domain/scheduler_test.dart` and `test/app/*`:
 
 ## 8. Backlog (what is left, in order)
 
-1. **On-device verification** listed in section 0 (Drive, task alarms, notifications prompt, orb levels, haptics), and the first real "Hey Planner" run with Vosk.
+1. **Voice accuracy and Drive on the phone:** see "Next up" in section 0.
 2. **Alarm actions on the Notification style (optional):** the full-screen style has Done, Snooze and Start now; the notification style still has none (it would need a background notification-response handler).
-3. **Release readiness:** a release signing key (and its SHA-1 plus Google Play's app-signing SHA-1 registered for the Android OAuth client), app name and id confirmation, iOS OAuth client when the user wants Drive on iOS, and the iOS `hey_planner_ios.ppn`.
+3. **Release readiness:** a release signing key (and its SHA-1 plus Google Play's app-signing SHA-1 registered for the Android OAuth client), app name and id confirmation, iOS OAuth client when the user wants Drive on iOS, Google Play's full-screen-intent declaration (alarms), and a 16 KB page-size check of Vosk's native libraries. "Hey Planner" is Android only for now (iOS has no Vosk integration yet).
 4. Small polish: TaskBlock loading skeleton (only if data ever loads after the first frame), desktop hover lift (+5%) on blocks, an Android emulator with a stable image if wanted.
 
 ---
@@ -289,5 +320,6 @@ All in `test/domain/scheduler_test.dart` and `test/app/*`:
 ## 10. Decisions still needed from the user
 
 1. ~~Picovoice AccessKey and keyword files~~: no longer needed (Vosk, decision 50).
+4. Whether Planner may save a few of the user's own voice clips on the phone (debug only) for tuning the wake word and recognition (section 0, step 1c). Not asked yet.
 2. **iOS OAuth client** for Drive (deferred by the user).
 3. App name and bundle id are the defaults (Planner, `com.planner.planner_app`); confirm or supply others before any store build.
