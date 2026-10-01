@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/alarm/alarm_host.dart';
+import '../features/alarm/alarm_customise_page.dart';
 import '../features/onboarding/onboarding_page.dart';
 import '../features/plan/plan_page.dart';
 import '../features/progress/review_page.dart';
@@ -26,6 +28,12 @@ const onboardingPath = '/onboarding';
 
 /// The weekly review: a full-screen route over the shell.
 const reviewPath = '/review';
+
+/// A ringing full-screen alarm, over everything.
+const alarmPath = '/alarm';
+
+/// Settings › Customise alarm screen.
+const alarmLookPath = '/alarm-look';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -60,6 +68,30 @@ final routerProvider = Provider<GoRouter>((ref) {
               child: SlideTransition(
                   position: Tween(begin: const Offset(0, 0.03), end: Offset.zero).animate(s), child: child),
             );
+          },
+        ),
+      ),
+      GoRoute(
+        path: alarmPath,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const AlarmPage(),
+          transitionDuration: const Duration(milliseconds: 360),
+          reverseTransitionDuration: const Duration(milliseconds: 280),
+          transitionsBuilder: (context, a, _, child) => FadeTransition(opacity: a, child: child),
+        ),
+      ),
+      GoRoute(
+        path: alarmLookPath,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const AlarmCustomisePage(),
+          transitionDuration: const Duration(milliseconds: 420),
+          reverseTransitionDuration: const Duration(milliseconds: 320),
+          transitionsBuilder: (context, a, _, child) {
+            if (PlannerMotion.reduced(context)) return FadeTransition(opacity: a, child: child);
+            final s = CurvedAnimation(parent: a, curve: PlannerMotion.settleCurve);
+            return SlideTransition(position: Tween(begin: const Offset(1, 0), end: Offset.zero).animate(s), child: child);
           },
         ),
       ),

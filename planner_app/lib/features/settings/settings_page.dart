@@ -16,6 +16,9 @@ import '../../app/state/ui_state.dart';
 import '../notifications/notification_service.dart';
 import '../voice/wake_word.dart';
 import 'drive_page.dart';
+import '../../app/router.dart';
+import '../alarm/alarm_engine.dart';
+import '../alarm/alarm_platform.dart';
 
 /// Settings (README 6.10): a push page with Routine, Notifications, Voice,
 /// Appearance, Data and statistics, and About. Debug builds add the
@@ -32,6 +35,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   PermissionStatus? _mic;
   bool? _notify;
   bool _exact = true;
+  bool _fullScreenOk = true;
 
   /// "Delete all data" is armed by the first tap for 4 seconds.
   bool _armed = false;
@@ -53,6 +57,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     PermissionStatus? mic;
     bool? notify;
     var exact = true;
+    var full = true;
+    try {
+      full = await ref.read(alarmPlatformProvider).canFullScreen();
+    } catch (_) {}
     try {
       mic = await Permission.microphone.status;
     } catch (_) {}
@@ -65,6 +73,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _mic = mic;
         _notify = notify;
         _exact = exact;
+        _fullScreenOk = full;
       });
     }
   }
@@ -213,6 +222,36 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             min: 48,
           ),
+        if (s.taskAlarms && ref.read(alarmEngineProvider).available) ...[
+          Container(
+            padding: const EdgeInsets.only(top: 10, bottom: 12),
+            decoration: BoxDecoration(border: Border(top: line)),
+            child: seg<AlarmStyle>(
+              'Alarm style',
+              const [(AlarmStyle.notification, 'Notification'), (AlarmStyle.fullScreen, 'Full screen')],
+              s.alarm.style,
+              (v) => _set((x) => x.copyWith(alarm: x.alarm.copyWith(style: v))),
+            ),
+          ),
+          if (s.alarm.style == AlarmStyle.fullScreen) ...[
+            link('Customise alarm screen', () => ref.read(routerProvider).push(alarmLookPath),
+                trailing: PlannerIcon(PIcon.chev, size: 16, color: c.t3, stroke: 1.6)),
+            if (!_fullScreenOk)
+              row(
+                'Allow full-screen alarms',
+                SecondaryPill(
+                  label: 'Allow',
+                  height: 32,
+                  padding: 12,
+                  onTap: () async {
+                    await ref.read(alarmPlatformProvider).allowFullScreen();
+                    await _refresh();
+                  },
+                ),
+                min: 48,
+              ),
+          ],
+        ],
         toggle('Weekly review', 'Sunday at 21:00', s.notifyReview, (v) => _set((x) => x.copyWith(notifyReview: v))),
         if (_notify == false)
           row(

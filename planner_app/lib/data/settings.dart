@@ -1,3 +1,7 @@
+import 'alarm_prefs.dart';
+
+export 'alarm_prefs.dart';
+
 /// App preferences (Settings, README 6.10). Stored as JSON in the key-value
 /// table and included in the Drive snapshot.
 enum ThemeChoice { system, dark, light }
@@ -20,6 +24,7 @@ class Settings {
     this.autoBackup = true,
     this.weekStartsMonday = true,
     this.countSkippedAsMissed = false,
+    this.alarm = const AlarmPrefs(),
   });
 
   final ThemeChoice theme;
@@ -34,6 +39,9 @@ class Settings {
   final bool autoBackup;
   final bool weekStartsMonday;
   final bool countSkippedAsMissed;
+
+  /// Alarm style, look, sound and actions.
+  final AlarmPrefs alarm;
 
   /// null = follow the system.
   bool? get reducedMotion => switch (motion) {
@@ -55,6 +63,7 @@ class Settings {
     bool? autoBackup,
     bool? weekStartsMonday,
     bool? countSkippedAsMissed,
+    AlarmPrefs? alarm,
   }) =>
       Settings(
         theme: theme ?? this.theme,
@@ -69,6 +78,7 @@ class Settings {
         autoBackup: autoBackup ?? this.autoBackup,
         weekStartsMonday: weekStartsMonday ?? this.weekStartsMonday,
         countSkippedAsMissed: countSkippedAsMissed ?? this.countSkippedAsMissed,
+        alarm: alarm ?? this.alarm,
       );
 
   Map<String, Object?> toJson() => {
@@ -84,6 +94,7 @@ class Settings {
         'autoBackup': autoBackup,
         'weekStartsMonday': weekStartsMonday,
         'countSkippedAsMissed': countSkippedAsMissed,
+        'alarm': alarm.toJson(),
       };
 
   static T _enum<T extends Enum>(List<T> values, Object? name, T fallback) =>
@@ -102,5 +113,6 @@ class Settings {
         autoBackup: j['autoBackup'] as bool? ?? true,
         weekStartsMonday: j['weekStartsMonday'] as bool? ?? true,
         countSkippedAsMissed: j['countSkippedAsMissed'] as bool? ?? false,
+        alarm: AlarmPrefs.fromJson((j['alarm'] as Map?)?.cast<String, Object?>()),
       );
 }

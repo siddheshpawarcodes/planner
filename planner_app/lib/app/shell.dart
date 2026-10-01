@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/keyboard/shortcuts.dart';
+import '../features/alarm/alarm_host.dart';
 import '../features/notifications/notification_service.dart';
 import '../features/offline/network.dart';
 import '../features/voice/planner_orb.dart';
@@ -125,6 +126,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       resizeToAvoidBottomInset: false,
       body: NetworkHost(
         child: NotificationHost(
+          child: AlarmHost(
           child: WakeWordHost(
             child: AppEntrance(
               child: KeyboardHost(
@@ -154,6 +156,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 ]),
               ),
             ),
+          ),
           ),
         ),
       ),

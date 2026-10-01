@@ -7,7 +7,12 @@ import 'package:planner_app/app/state/ui_state.dart';
 import 'package:planner_app/data/settings.dart';
 import 'package:planner_app/features/voice/voice_controller.dart';
 
+import 'package:planner_app/app/router.dart';
+import 'package:planner_app/features/alarm/alarm_engine.dart';
+
 import 'harness.dart';
+
+final _at = DateTime(2026, 9, 30, 20);
 
 /// README 9 and 3.5: every screen at 1.3× text with reduced motion. Rows grow
 /// rather than truncate, so any overflow fails the test.
@@ -133,6 +138,39 @@ void main() {
     await h.settle(1500);
     expect(seen, contains(PlaceStage.placed));
     expect(seen, isNot(contains(PlaceStage.staged)));
+    await h.dispose();
+  });
+
+  // The alarm screen (both answer styles) and its customise page: 1.3× text
+  // without overflow, then the same guidelines as every tab.
+  for (final slide in [false, true]) {
+    testWidgets('alarm screen at 1.3×, slide: $slide', (tester) async {
+      final engine = NoAlarmEngine(available: true);
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final h = await pumpScenario(tester, Scenario.wed,
+          edit: (d) => d.copyWith(
+              settings: d.settings.copyWith(
+                  motion: MotionChoice.reduced,
+                  alarm: AlarmPrefs(style: AlarmStyle.fullScreen, slide: slide, look: const AlarmLook(message: 'You’ve got this.')))),
+          overrides: [alarmEngineProvider.overrideWithValue(engine)]);
+      engine.ring(PlannedAlarm(
+          id: 1, at: _at, title: 'Revise polity notes for the mock', taskId: 't1', range: '20:00 → 22:00', next: 'Then Exercise at 22:15'));
+      await h.settle(900);
+      expect(find.text('TASK ALARM'), findsOneWidget);
+      await expectLater(tester, meetsGuideline(const MinimumTapTargetGuideline(size: Size(44, 44), link: 'README 3.4')));
+      await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(textContrastGuideline));
+      await h.dispose();
+    });
+  }
+
+  testWidgets('customise alarm screen at 1.3×', (tester) async {
+    final h = await big(tester, Scenario.wed);
+    h.container.read(routerProvider).push(alarmLookPath);
+    await h.settle(1200);
+    expect(find.text('Alarm screen'), findsOneWidget);
+    await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
     await h.dispose();
   });
 }

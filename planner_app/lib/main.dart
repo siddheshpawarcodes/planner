@@ -13,6 +13,8 @@ import 'data/backup/sync.dart';
 import 'data/database.dart';
 import 'data/repository.dart';
 import 'domain/time.dart';
+import 'features/alarm/alarm_engine.dart';
+import 'features/alarm/alarm_platform.dart';
 import 'features/notifications/notification_service.dart';
 import 'features/offline/network.dart';
 import 'features/voice/porcupine_engine.dart';
@@ -43,6 +45,14 @@ Future<void> main() async {
   }
 
   final wake = await PorcupineWakeWordEngine.create();
+  // Full-screen task alarms are Android only (iOS has no full-screen intent).
+  final android = defaultTargetPlatform == TargetPlatform.android;
+  final AlarmEngine alarms = android ? PluginAlarmEngine() : NoAlarmEngine();
+  try {
+    await alarms.init();
+  } catch (e) {
+    if (kDebugMode) debugPrint('[alarm] init failed: $e');
+  }
   // Google Drive (drive.appdata): Android has its OAuth client; iOS waits
   // for one, so debug builds there keep the stand-in to exercise the UI.
   final DriveClient drive = defaultTargetPlatform == TargetPlatform.android
@@ -58,6 +68,8 @@ Future<void> main() async {
     connectivityProvider.overrideWithValue(Connectivity()),
     wakeWordEngineProvider.overrideWithValue(wake),
     driveClientProvider.overrideWithValue(drive),
+    alarmEngineProvider.overrideWithValue(alarms),
+    if (android) alarmPlatformProvider.overrideWithValue(MethodAlarmPlatform()),
   ]);
   if (pinned != null) container.read(clockProvider.notifier).pin(pinned);
   runApp(UncontrolledProviderScope(container: container, child: const PlannerApp()));

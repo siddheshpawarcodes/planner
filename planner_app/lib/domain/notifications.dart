@@ -1,3 +1,4 @@
+import 'category.dart';
 import 'task.dart';
 import 'time.dart';
 
@@ -5,8 +6,14 @@ enum NoteKind { nextTask, alarm, missed, review }
 
 /// One local notification Planner wants scheduled.
 class PlannedNote {
-  const PlannedNote(this.id, this.kind, this.at, this.title, this.body);
+  const PlannedNote(this.id, this.kind, this.at, this.title, this.body, {this.taskId, this.cat});
   final int id;
+
+  /// The task it belongs to (next-task reminders and alarms).
+  final String? taskId;
+
+  /// For a test alarm: the category whose look it shows.
+  final Category? cat;
   final NoteKind kind;
   final DateTime at;
   final String title, body;
@@ -48,7 +55,7 @@ List<PlannedNote> planNotifications({
       final when = at(t.day!, t.start! - 5);
       if (!when.isAfter(now)) continue;
       out.add(PlannedNote(1000 + n, NoteKind.nextTask, when, t.title,
-          'Starts in 5 minutes, ${fmt(t.start!)} → ${fmt(t.end!)}.'));
+          'Starts in 5 minutes, ${fmt(t.start!)} → ${fmt(t.end!)}.', taskId: t.id));
       if (++n >= maxNext) break;
     }
   }
@@ -58,7 +65,7 @@ List<PlannedNote> planNotifications({
     for (final t in live) {
       final when = at(t.day!, t.start!);
       if (!when.isAfter(now)) continue;
-      out.add(PlannedNote(4000 + n, NoteKind.alarm, when, t.title, 'Time to start: ${fmt(t.start!)} → ${fmt(t.end!)}.'));
+      out.add(PlannedNote(4000 + n, NoteKind.alarm, when, t.title, 'Time to start: ${fmt(t.start!)} → ${fmt(t.end!)}.', taskId: t.id));
       if (++n >= maxNext) break;
     }
   }

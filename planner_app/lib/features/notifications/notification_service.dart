@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +10,10 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../../app/state/clock.dart';
 import '../../app/state/derived.dart';
+import '../../data/alarm_prefs.dart';
+import '../../domain/category.dart';
 import '../../domain/notifications.dart';
+import '../alarm/alarm_engine.dart';
 
 /// Local notifications behind an interface: the app uses the plugin, tests
 /// and previews use [NoNotifications].
@@ -177,14 +180,15 @@ class LocalNotifications implements NotificationService {
 /// Overridden in `main` with [LocalNotifications].
 final notificationServiceProvider = Provider<NotificationService>((ref) => NoNotifications());
 
-/// Debug: Settings › Developer › "Test alarm in 1 minute". Scheduling
-/// replaces everything on each change, so the test alarm lives in the plan.
-final testAlarmProvider = NotifierProvider<TestAlarm, DateTime?>(TestAlarm.new);
+/// A test alarm (Customise alarm screen › Ring a test, and the developer
+/// panel). Scheduling replaces everything on each change, so the test alarm
+/// lives in the plan. [cat] picks the look it shows.
+final testAlarmProvider = NotifierProvider<TestAlarm, (DateTime, Category)?>(TestAlarm.new);
 
-class TestAlarm extends Notifier<DateTime?> {
+class TestAlarm extends Notifier<(DateTime, Category)?> {
   @override
-  DateTime? build() => null;
-  void set(DateTime? at) => state = at;
+  (DateTime, Category)? build() => null;
+  void set(DateTime? at, {Category cat = Category.self}) => state = at == null ? null : (at, cat);
 }
 
 /// What should be scheduled right now (debug scenarios with a pinned clock
@@ -205,8 +209,8 @@ final plannedNotesProvider = Provider<List<PlannedNote>>((ref) {
       missed: s.notifyMissed,
       review: s.notifyReview,
     ),
-    if (kDebugMode && test != null && test.isAfter(now))
-      PlannedNote(3999, NoteKind.alarm, test, 'Test alarm', 'This is how a task alarm rings.'),
+    if (test != null && test.$1.isAfter(now))
+      PlannedNote(3999, NoteKind.alarm, test.$1, 'Test alarm', 'This is how a task alarm rings.', cat: test.$2),
   ];
 });
 
@@ -238,7 +242,17 @@ class _NotificationHostState extends ConsumerState<NotificationHost> {
       final svc = ref.read(notificationServiceProvider);
       try {
         if (await svc.granted() != true) return;
-        await svc.replace(ref.read(plannedNotesProvider));
+        var notes = ref.read(plannedNotesProvider);
+        // Full-screen style: task alarms belong to the alarm engine (which
+        // rings, fades in and opens the alarm screen); the rest stay here.
+        final prefs = ref.read(settingsProvider).alarm;
+        final engine = ref.read(alarmEngineProvider);
+        final full = engine.available && prefs.style == AlarmStyle.fullScreen;
+        final tasks = ref.read(tasksProvider);
+        await engine.sync(full ? alarmsFrom(notes, tasks) : const [], AlarmSound.of(prefs),
+            openTaskIds: {for (final t in tasks) if (t.isLive && !t.done) t.id});
+        if (full) notes = [for (final n in notes) if (n.kind != NoteKind.alarm) n];
+        await svc.replace(notes);
       } catch (e) {
         if (kDebugMode) debugPrint('[notifications] $e');
       }
