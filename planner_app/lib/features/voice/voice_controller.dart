@@ -132,12 +132,16 @@ class VoiceController extends Notifier<VoiceState> {
       note.say('The wake phrase is off. Turn it on in Settings, Voice.');
       return;
     }
-    if (!state.open) tapOrb();
+    if (!state.open) tapOrb(fromWake: true);
   }
 
+  /// This session was opened by the wake phrase (see [stripWakeResidue]).
+  bool _fromWake = false;
+
   /// Orb tap (prototype `tapOrb`): works anywhere in the app.
-  Future<void> tapOrb() async {
+  Future<void> tapOrb({bool fromWake = false}) async {
     if (state.open) return veilTap();
+    _fromWake = fromWake;
     seq.clear();
     ref.read(orbControllerProvider).tapImpulse();
     Haptics.orb();
@@ -175,7 +179,7 @@ class VoiceController extends Notifier<VoiceState> {
     final m = _m;
     seq.at(550 * m, () {
       final today = _act.today;
-      final intent = parseUtterance(text, today: today);
+      final intent = parseUtterance(_fromWake ? stripWakeResidue(text) : text, today: today);
       final res = resolveIntent(intent,
           tasks: _act.data.tasks,
           routine: _act.routine,

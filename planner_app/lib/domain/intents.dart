@@ -123,6 +123,20 @@ int? _parseOffset(String s) {
 /// The wake phrase said after tapping the orb ("Hey Planner, add gym…").
 final _wakeRe = RegExp(r'^(?:(?:hey|hi|ok|okay) )?planner\b,?\s*');
 
+/// After "Hey Planner" woke Planner, the recogniser starts while the phrase
+/// is still ending and can hear its tail as a word ("…ner, add gym" came
+/// out as "Hitler at gym"). For a session the wake phrase opened, this drops
+/// such a leading fragment and reads a leading "at" (not before a number)
+/// as the "add" it almost always was.
+String stripWakeResidue(String text) {
+  var s = text.trim();
+  s = s.replaceFirst(
+      RegExp(r'^(?:(?:hey|hi|a|the)\s+)?(?:planners?|planet|planer|banner|hitler|litter|lena|leaner|ner|nah)\b[,.]?\s*',
+          caseSensitive: false),
+      '');
+  return s.replaceFirst(RegExp(r'^at\s+(?!\d)', caseSensitive: false), 'add ');
+}
+
 final _durRe = RegExp(r'\b(?:for )?(\d+(?:\.\d+)?)\s*(hours?|hrs?|h|minutes?|mins?|m)\b');
 final _atRe = RegExp(r'\bat (\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|a m|p m)?\b');
 

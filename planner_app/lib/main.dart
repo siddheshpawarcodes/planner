@@ -17,6 +17,7 @@ import 'features/alarm/alarm_engine.dart';
 import 'features/alarm/alarm_platform.dart';
 import 'features/notifications/notification_service.dart';
 import 'features/offline/network.dart';
+import 'features/voice/speech.dart';
 import 'features/voice/vosk_engine.dart';
 import 'features/voice/wake_word.dart';
 
@@ -72,5 +73,10 @@ Future<void> main() async {
     if (android) alarmPlatformProvider.overrideWithValue(MethodAlarmPlatform()),
   ]);
   if (pinned != null) container.read(clockProvider.notifier).pin(pinned);
+  // A real launch talks to the real microphone. Only the scripted journey
+  // steps (PLANNER_SCENARIO) and tests keep the demo voice, which would
+  // otherwise add the prototype's sample tasks to a real plan; Settings ›
+  // Developer can still switch to it.
+  if (pinned == null) container.read(voiceDebugProvider.notifier).set((v) => v.copyWith(live: true));
   runApp(UncontrolledProviderScope(container: container, child: const PlannerApp()));
 }

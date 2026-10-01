@@ -20,9 +20,9 @@ import java.io.IOException
 
 /**
  * "Hey Planner" with Vosk: offline speech recognition restricted to a small
- * grammar. Near-miss phrases ("hey planet", "okay planner", "hey plan") are
- * in the grammar as decoys, so they are heard as themselves instead of being
- * forced onto the wake phrase; only "hey planner" wakes Planner.
+ * grammar. Other phrases ("hey banner", "okay planner", "hey plane") are in
+ * the grammar as decoys, so they are heard as themselves instead of being
+ * forced onto the wake phrase; see WAKE_START and WAKE_WHOLE for what wakes.
  *
  * The model ships in the APK (assets/vosk-model) and is copied to app
  * storage once. Dart arms and disarms it (channel planner/wake) and gets a
@@ -34,7 +34,15 @@ class VoskWake(private val context: Context, messenger: BinaryMessenger) : Recog
         private const val TAG = "VoskWake"
         private const val ASSET = "vosk-model"
         private const val RATE = 16000f
-        private val WAKE = Regex("(^| )hey planner( |$)")
+        // Tuned on the user's own voice (1 Oct): Vosk often drops a soft
+        // "hey" and lands "planner" on a near sound, so the wake phrase is
+        // the "(hey) plan…" family. A partial wakes when an utterance starts
+        // with it (so "Hey Planner, add gym…" in one breath works); a final
+        // wakes when the whole utterance is one, in any of the top three
+        // guesses scoring within 5% of the best. Sentences that only
+        // contain "planner" ("I need a planner…") never wake it.
+        private val WAKE_START = Regex("^(?:(?:hey|a) )?(?:planner|planet|plant|plan)( |$)")
+        private val WAKE_WHOLE = Regex("^(?:(?:hey|a) )?(?:planner|planet|plant|plan(?: a| banner)?)$")
         private val GRAMMAR = listOf(
             "hey planner",
             // Decoys: close to the wake phrase, so they land here instead.
@@ -111,7 +119,10 @@ class VoskWake(private val context: Context, messenger: BinaryMessenger) : Recog
         StorageService.unpack(context, ASSET, "model", { m ->
             loading = false
             model = m
-            recognizer = Recognizer(m, RATE, GRAMMAR)
+            recognizer = Recognizer(m, RATE, GRAMMAR).apply {
+                // The top guesses with their scores, for tuning on real voices.
+                setMaxAlternatives(3)
+            }
             Log.d(TAG, "model ready")
             if (wantRunning) startListening()
         }, { e ->
@@ -144,13 +155,33 @@ class VoskWake(private val context: Context, messenger: BinaryMessenger) : Recog
         service = null
     }
 
+    private val debuggable = context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
+
+    /** Partials carry one hypothesis; finals carry up to three alternatives. */
     private fun check(json: String?, key: String) {
-        val text = try {
-            JSONObject(json ?: return).optString(key)
+        val o = try {
+            JSONObject(json ?: return)
         } catch (e: Exception) {
             return
         }
-        if (!WAKE.containsMatchIn(text)) return
+        val alts = o.optJSONArray("alternatives")
+        val text: String
+        if (alts != null) {
+            val list = (0 until alts.length()).map { alts.getJSONObject(it) }
+            if (debuggable && list.any { it.optString("text").isNotEmpty() }) {
+                Log.d(TAG, "heard: " + list.joinToString(" | ") {
+                    "${it.optString("text")} (${"%.0f".format(it.optDouble("confidence"))})"
+                })
+            }
+            val top = list.firstOrNull()?.optDouble("confidence") ?: return
+            val margin = maxOf(3.0, 0.05 * Math.abs(top))
+            text = list.firstOrNull {
+                WAKE_WHOLE.matches(it.optString("text")) && it.optDouble("confidence") >= top - margin
+            }?.optString("text") ?: return
+        } else {
+            text = o.optString(key)
+            if (!WAKE_START.containsMatchIn(text)) return
+        }
         val now = SystemClock.elapsedRealtime()
         if (now - lastWake < 2000) return
         lastWake = now

@@ -170,4 +170,14 @@ void main() {
       expect(r.summary, contains('Try “Add gym tomorrow for one hour.”'));
     });
   });
+
+  test('after the wake phrase, a misheard tail of it is dropped', () {
+    expect(stripWakeResidue('Hitler at gym tomorrow for 1 hour'), 'add gym tomorrow for 1 hour');
+    expect(stripWakeResidue('planner, add gym tomorrow'), 'add gym tomorrow');
+    expect(stripWakeResidue('add gym tomorrow'), 'add gym tomorrow');
+    expect(stripWakeResidue('at 7 call mum'), 'at 7 call mum', reason: 'a time stays a time');
+    expect(stripWakeResidue('plan my evening'), 'plan my evening');
+    final i = parseUtterance(stripWakeResidue('Hitler at gym tomorrow for 1 hour'), today: 100);
+    expect((i.kind, i.day, i.tasks.single.title, i.tasks.single.duration), (IntentKind.add, 101, 'Gym', 60));
+  });
 }
