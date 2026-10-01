@@ -37,12 +37,18 @@ class NoNotifications implements NotificationService {
   final scheduled = <PlannedNote>[];
   bool allowed = true, exact = true;
 
+  /// How many times the permission prompt was asked for.
+  int asked = 0;
+
   @override
   Future<void> init() async {}
   @override
   Future<bool?> granted() async => allowed;
   @override
-  Future<bool> requestPermission() async => allowed;
+  Future<bool> requestPermission() async {
+    asked++;
+    return allowed;
+  }
   @override
   Future<bool> canAlarmExactly() async => exact;
   @override

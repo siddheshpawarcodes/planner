@@ -111,8 +111,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       if (widget.edit) {
         act.seq.at(40, () => act.note.say('Routine updated. Planner rebuilt your week around it.'));
       } else {
-        // First run: a calm moment to ask for notifications.
-        act.seq.at(1200, () => ref.read(notificationServiceProvider).requestPermission());
+        // First run: a calm moment to ask for notifications. Read now: this
+        // page is gone by the time the prompt shows.
+        final notes = ref.read(notificationServiceProvider);
+        act.seq.at(1200, notes.requestPermission);
       }
     });
   }
