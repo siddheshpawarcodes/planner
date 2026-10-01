@@ -12,7 +12,7 @@ Last updated: 1 October 2026, day 3. All ten milestones, the README 11 acceptanc
 
 ## 0. Start here (state on day 3)
 
-**Code:** everything is committed on `main` (173 tests passing plus the device acceptance test, analyzer clean). The last commits may not be on GitHub yet: run `git log --oneline origin/main..HEAD`; anything listed needs `git -c credential.helper= push origin main` (the user signs in as siddheshpawarcodes with a personal access token, see section 9).
+**Code:** everything is committed on `main` (172 tests passing plus the device acceptance test, analyzer clean). The last commits may not be on GitHub yet: run `git log --oneline origin/main..HEAD`; anything listed needs `git -c credential.helper= push origin main` (the user signs in as siddheshpawarcodes with a personal access token, see section 9).
 
 **Waiting on the user:**
 1. **Porcupine "Hey Planner"** (code done, not yet run for real; on 1 Oct `secrets.json` still held the example placeholder and `assets/wake/` had no `.ppn`). The user will: put their Picovoice AccessKey in `planner_app/config/secrets.json` (already created from the example and git-ignored; never paste the key into chat, and the assistant must not type it into files for them) and download the Android keyword from the Picovoice Console (Porcupine › "Hey Planner" › English › Android). When they say "done": find the download (usually a zip in `~/Downloads`), unzip it to `planner_app/assets/wake/hey_planner_android.ppn`, check the key is filled in without printing it (for example `python3 -c "import json;print(len(json.load(open('config/secrets.json'))['PICOVOICE_ACCESS_KEY']))"`), then `flutter run -d ZD222MDN6H --dart-define-from-file=config/secrets.json` and watch the log for `[wake]` lines. Say "Hey Planner" on Today.
@@ -173,7 +173,7 @@ planner_app/
 | 9 | Progress (ribbon, heatmap) and weekly review | **Done** | 8 domain tests (Sunday and Wednesday scenarios, heat, carried, copy) and 4 widget tests (empty state, day select and With work, all six review stages with keys and Plan next week, closing). Motorola and iPhone simulator. |
 | 10 | Settings, Drive, offline; tablet and desktop; accessibility and reduced-motion pass | **Done** except the real Google Drive client (needs OAuth ids): 10a Settings + notifications + export/delete, 10b Drive (stand-in client) + offline, 10c tablet/desktop + keyboard, 10d accessibility and reduced-motion pass | Notifications, snapshot, sync suites; Settings, layout/keyboard and accessibility widget tests (every screen at 1.3× with reduced motion; 44px targets, labels and contrast via Flutter's guidelines). Motorola (Settings, Export), iPhone and iPad simulators, desktop rendered at 1440 × 900. |
 
-Test count on day 3: 173 passing (`flutter test`), analyzer clean; `flutter test integration_test -d macos` passes (about 1 min, real time). **First Android run done on the Motorola** (Today, Progress, Settings render correctly).
+Test count on day 3: 172 passing (`flutter test`), analyzer clean; `flutter test integration_test -d macos` passes (about 1 min, real time). **First Android run done on the Motorola** (Today, Progress, Settings render correctly).
 
 ---
 
