@@ -44,6 +44,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Wake word: Picovoice keyword models and the build-time AccessKey.
-/assets/wake/*.ppn
+# Wake word: the Vosk model (tool/fetch_vosk_model.sh), and the old
+# Picovoice build-time key file if one is still lying around.
+/android/app/src/main/assets/vosk-model/
 /config/secrets.json

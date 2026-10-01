@@ -17,7 +17,7 @@ import 'features/alarm/alarm_engine.dart';
 import 'features/alarm/alarm_platform.dart';
 import 'features/notifications/notification_service.dart';
 import 'features/offline/network.dart';
-import 'features/voice/porcupine_engine.dart';
+import 'features/voice/vosk_engine.dart';
 import 'features/voice/wake_word.dart';
 
 /// Debug: `--dart-define=PLANNER_SCENARIO=wed` starts at a journey step.
@@ -44,7 +44,7 @@ Future<void> main() async {
     await repo.putMeta(metaOf(data));
   }
 
-  final wake = await PorcupineWakeWordEngine.create();
+  final wake = await VoskWakeWordEngine.create();
   // Full-screen task alarms are Android only (iOS has no full-screen intent).
   final android = defaultTargetPlatform == TargetPlatform.android;
   final AlarmEngine alarms = android ? PluginAlarmEngine() : NoAlarmEngine();

@@ -11,7 +11,7 @@ import 'voice_controller.dart';
 /// An on-device keyword spotter for "Hey Planner" (README 6.3). It runs only
 /// while [wakeGateProvider] says the wake phrase is armed; there is no
 /// background service.
-/// The app uses Porcupine (`porcupine_engine.dart`); another spotter can
+/// The app uses Vosk on Android (`vosk_engine.dart`); another spotter can
 /// replace it by implementing this interface.
 abstract class WakeWordEngine {
   /// Configured and able to run (key, keyword model, platform).

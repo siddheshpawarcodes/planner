@@ -35,6 +35,7 @@ class MainActivity : FlutterActivity() {
 
     private var alarmLaunch = false
     private var preview: MediaPlayer? = null
+    private var wake: VoskWake? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,6 +50,8 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         stopPreview()
+        wake?.dispose()
+        wake = null
         super.onDestroy()
     }
 
@@ -75,6 +78,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        wake = VoskWake(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "planner/alarm").setMethodCallHandler { call, result ->
             when (call.method) {
                 "launchedByAlarm" -> result.success(alarmLaunch)

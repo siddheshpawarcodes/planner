@@ -49,4 +49,9 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // "Hey Planner": Vosk offline speech recognition (Apache 2.0), limited to
+    // a small grammar. The model is in src/main/assets/vosk-model
+    // (git-ignored; tool/fetch_vosk_model.sh puts it there).
+    implementation("com.alphacephei:vosk-android:0.3.47@aar")
+    implementation("net.java.dev.jna:jna:5.13.0@aar")
 }
