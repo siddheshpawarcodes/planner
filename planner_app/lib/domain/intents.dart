@@ -288,13 +288,15 @@ const _stop = {
   'my', 'the', 'task', 'session', 'as', 'to', 'a', 'an', 'block', 'it', 'please', 'for',
   'mark', 'set', 'complete', 'completed', 'done', 'finished', 'finish', 'delete', 'remove',
   'cancel', 'drop', 'move', 'push', 'shift', 'i', 'did', 'with', 'on', 'at', 'in', 'from',
+  'erase', 'clear', 'scrap', 'get', 'rid', 'of', 'take', 'off', 'one', 'thing',
 };
 
 String? _queryOf(String s) {
   final t = _withoutTimes(s.replaceAll(_dayWordRe, ' ')).replaceAll(_durRe, ' ');
   final words = t
       .split(RegExp(r'[\s,]+'))
-      .where((w) => w.isNotEmpty && !_stop.contains(w))
+      // A bare number is never a name ("the 9 pm one" turned "one" into 1).
+      .where((w) => w.isNotEmpty && !_stop.contains(w) && !RegExp(r'^\d+$').hasMatch(w))
       .toList();
   return words.isEmpty ? null : words.join(' ');
 }
@@ -345,8 +347,12 @@ VoiceIntent parseUtterance(String utterance, {required int today}) {
       .hasMatch(s)) {
     return withKeys(const VoiceIntent(IntentKind.reschedule));
   }
-  if (RegExp(r'^(please )?(delete|remove|cancel|drop)\b').hasMatch(s)) {
-    return withKeys(VoiceIntent(IntentKind.delete, query: _queryOf(s), day: _parseDay(s, today)));
+  final del = RegExp(r"^(?:(?:please|can you|could you|would you|will you|i want to|i'd like to|i need to|go ahead and|just) )*"
+          r'(delete|remove|cancel|drop|erase|clear|scrap|get rid of|take)\b(.*)$')
+      .firstMatch(s);
+  if (del != null && (del[1] != 'take' || RegExp(r'\boff\b').hasMatch(del[2]!))) {
+    final what = del[2]!.replaceAll(RegExp(r'\boff (my |the )?(plan|list|schedule|calendar)\b|\boff\b'), ' ');
+    return withKeys(VoiceIntent(IntentKind.delete, query: _queryOf(what), day: _parseDay(s, today), at: _parseAt(s)));
   }
   if (RegExp(r'\b(mark|set)\b.*\b(complete|completed|done|finished)\b|^(complete|finish|finished|i finished|i did|i am done with|done with)\b')
       .hasMatch(s)) {
@@ -698,8 +704,19 @@ VoiceResolution resolveIntent(
       );
 
     case IntentKind.delete:
-      final g = findNext(i.query);
-      if (g == null) return _notFound(i.query);
+      // By name, narrowed by a day or time when one was said; or, with no
+      // name ("delete the 9 pm task"), by the time alone.
+      final cands = stableSorted(
+          tasks.where((t) =>
+              t.isLive &&
+              !t.done &&
+              t.day! >= today &&
+              (i.query == null || _matches(t, i.query!)) &&
+              (i.day == null || t.day == i.day) &&
+              (i.at == null || t.start == i.at)),
+          (a, b) => a.day != b.day ? a.day! - b.day! : a.start! - b.start!);
+      final g = (i.query == null && i.at == null) ? null : cands.firstOrNull;
+      if (g == null) return _notFound(i.query ?? (i.at != null ? fmt(i.at!) : null));
       return VoiceResolution(
         label: 'DELETE THIS TASK?',
         rows: [VoiceRow(g.title, '${dayShort(g.day!)} ${fmt(g.start!)}', g.cat)],

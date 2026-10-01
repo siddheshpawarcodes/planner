@@ -229,4 +229,37 @@ void main() {
         tasks: const [], routine: routine, today: tue, now: 840, newId: () => 'y${n++}');
     expect((ok.rows.single.detail, ok.summary), ('1h, 21:00', ''));
   });
+
+  group('delete by voice', () {
+    final plan = [
+      Task.make('g', 'Gym', Category.body, wed, 1260, 60),
+      Task.make('f', 'Learn Flutter', Category.build, wed, 1380, 60),
+      Task.make('g2', 'Gym', Category.body, thu, 1260, 60),
+    ];
+    String? deletes(String u) {
+      final i = parseUtterance(u, today: tue);
+      expect(i.kind, IntentKind.delete, reason: u);
+      final r = resolveIntent(i, tasks: plan, routine: routine, today: tue, now: 1180, newId: () => 'x');
+      return r.effect is DeleteEffect ? '${(r.effect as DeleteEffect).task.id}' : r.summary;
+    }
+
+    test('natural ways of saying it', () {
+      expect(deletes('delete my gym task'), 'g');
+      expect(deletes('can you delete the gym'), 'g');
+      expect(deletes('please remove learn flutter'), 'f');
+      expect(deletes('get rid of gym on thursday'), 'g2');
+      expect(deletes('take flutter off my plan'), 'f');
+      expect(deletes('cancel gym tomorrow'), 'g');
+    });
+
+    test('by time alone, and a clear miss', () {
+      expect(deletes('delete the 11 pm task'), 'f');
+      expect(deletes('delete the 9 pm one on thursday'), 'g2');
+      expect(deletes('delete the swimming task'), contains('no swimming task'));
+    });
+
+    test('"take" is only a delete with "off"', () {
+      expect(parseUtterance('take a walk tomorrow at 7 pm', today: tue).kind, IntentKind.add);
+    });
+  });
 }

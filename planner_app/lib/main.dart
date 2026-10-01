@@ -1,6 +1,7 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/app.dart';
@@ -26,6 +27,12 @@ const _scenario = String.fromEnvironment('PLANNER_SCENARIO');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Phones stay in portrait (user decision); tablets keep rotating, since
+  // their two-pane layout is built for landscape.
+  final view = WidgetsBinding.instance.platformDispatcher.views.first;
+  if (view.physicalSize.shortestSide / view.devicePixelRatio < 600) {
+    await SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+  }
   final repo = DriftPlannerRepository(PlannerDatabase());
   var data = await repo.load();
   DateTime? pinned;
