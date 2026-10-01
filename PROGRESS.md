@@ -6,17 +6,19 @@ new session should read this file first, then `planner-final-handoff/README.md`
 (the exact prototype logic). Everything decided so far is recorded here, so
 nothing needs to be re-derived.
 
-Last updated: 1 October 2026, day 3. All ten milestones and the README 11 acceptance test are built; what remains is on-device verification and the user's Porcupine files (see "Start here").
+Last updated: 1 October 2026, day 3. All ten milestones, the README 11 acceptance test and full-screen customisable alarms are built; what remains is on-device verification and the user's Porcupine files (see "Start here").
 
 ---
 
 ## 0. Start here (state on day 3)
 
-**Code:** everything is committed on `main` (159 tests passing plus the device acceptance test, analyzer clean). The last commits may not be on GitHub yet: run `git log --oneline origin/main..HEAD`; anything listed needs `git -c credential.helper= push origin main` (the user signs in as siddheshpawarcodes with a personal access token, see section 9).
+**Code:** everything is committed on `main` (173 tests passing plus the device acceptance test, analyzer clean). The last commits may not be on GitHub yet: run `git log --oneline origin/main..HEAD`; anything listed needs `git -c credential.helper= push origin main` (the user signs in as siddheshpawarcodes with a personal access token, see section 9).
 
 **Waiting on the user:**
 1. **Porcupine "Hey Planner"** (code done, not yet run for real; on 1 Oct `secrets.json` still held the example placeholder and `assets/wake/` had no `.ppn`). The user will: put their Picovoice AccessKey in `planner_app/config/secrets.json` (already created from the example and git-ignored; never paste the key into chat, and the assistant must not type it into files for them) and download the Android keyword from the Picovoice Console (Porcupine › "Hey Planner" › English › Android). When they say "done": find the download (usually a zip in `~/Downloads`), unzip it to `planner_app/assets/wake/hey_planner_android.ppn`, check the key is filled in without printing it (for example `python3 -c "import json;print(len(json.load(open('config/secrets.json'))['PICOVOICE_ACCESS_KEY']))"`), then `flutter run -d ZD222MDN6H --dart-define-from-file=config/secrets.json` and watch the log for `[wake]` lines. Say "Hey Planner" on Today.
 2. **iOS OAuth client for Drive:** deferred by the user; do not block on it.
+
+**Full-screen alarms (built 1 Oct, verified on the Motorola):** in-app ring, Snooze (rang 10 min later), slide to Done over the lock screen (returned to the lock screen), and a ring with Planner's process killed (cold start over the lock screen) all work. Still to check on the current build: one more cold-start ring (the first ran the build installed before two visual fixes), a photo and a video background, a chosen phone tone and the 15 s fade, and Start now from the lock screen (it asks to unlock). The user's choices on 1 Oct: Full screen, Aurora, slide to confirm, 15 s gentle start.
 
 **To verify on the Motorola next time it is plugged in** (`adb devices` shows `ZD222MDN6H`):
 - **Google Drive (real, Android):** Settings › Backup › Google Drive › Connect. Expect Google's account picker and consent, then "Backed up just now". If it fails, read `[drive]` lines in the `flutter run` log. Cloud-side prerequisites: Drive API enabled; the account is a test user while the consent screen is in Testing; Android OAuth client = `com.planner.planner_app` + SHA-1 `EE:51:6E:0B:9D:5D:4A:A2:94:AF:95:6F:FD:33:D1:6C:77:B9:2B:2D` (this Mac's debug keystore; verified matching).
@@ -126,6 +128,9 @@ planner_app/
       backup/                  drive_client (interface + stand-in), google_drive_client (Drive v3 appData),
                                sync (SyncController state machine, conflict rule, status copy)
     features/
+      alarm/                   alarm_engine (alarm plugin, alarmDiff), alarm_platform (planner/alarm channel),
+                               alarm_screen, alarm_backgrounds (six looks, media, effects), alarm_host (/alarm),
+                               alarm_customise_page (/alarm-look)
       today/                   today_model, today_header, timeline_strip, dial_view, today_page
       tasks/                   task_form, task_sheet, detail_sheet, decision_sheet
       plan/                    plan_board (WeekBoard), plan_page, upcoming
@@ -168,7 +173,7 @@ planner_app/
 | 9 | Progress (ribbon, heatmap) and weekly review | **Done** | 8 domain tests (Sunday and Wednesday scenarios, heat, carried, copy) and 4 widget tests (empty state, day select and With work, all six review stages with keys and Plan next week, closing). Motorola and iPhone simulator. |
 | 10 | Settings, Drive, offline; tablet and desktop; accessibility and reduced-motion pass | **Done** except the real Google Drive client (needs OAuth ids): 10a Settings + notifications + export/delete, 10b Drive (stand-in client) + offline, 10c tablet/desktop + keyboard, 10d accessibility and reduced-motion pass | Notifications, snapshot, sync suites; Settings, layout/keyboard and accessibility widget tests (every screen at 1.3× with reduced motion; 44px targets, labels and contrast via Flutter's guidelines). Motorola (Settings, Export), iPhone and iPad simulators, desktop rendered at 1440 × 900. |
 
-Test count on day 3: 159 passing (`flutter test`), analyzer clean; `flutter test integration_test -d macos` passes (about 1 min, real time). **First Android run done on the Motorola** (Today, Progress, Settings render correctly).
+Test count on day 3: 173 passing (`flutter test`), analyzer clean; `flutter test integration_test -d macos` passes (about 1 min, real time). **First Android run done on the Motorola** (Today, Progress, Settings render correctly).
 
 ---
 
@@ -249,13 +254,15 @@ All in `test/domain/scheduler_test.dart` and `test/app/*`:
 45. **Acceptance test** (README 11): `test/app/journey.dart` is one journey on one in-memory store and one fake clock, from Tuesday's onboarding (install day stamped as `main.dart` does) through the voice request, Move Flutter, done early, the missed Exercise, This weekend and the Sunday review (3 planned, 1 finished, 1h 40m focused, 2 rescheduled and carried, best hours 20:00 → 22:00). `test/app/acceptance_test.dart` runs it under `flutter test`; `integration_test/acceptance_test.dart` runs the same code on a device in real time. Run it on macOS (`flutter test integration_test -d macos`), not the user's phone: it never touches stored data, but installing a test build replaces the installed debug app. The review is opened through its button's own handler (`openReview`) because the button sits under the bottom nav at 860 px.
 46. **"No room" names the chosen day:** with a day chosen in the TaskSheet the preview says "No room left today", "No room tomorrow" or "No room on Saturday"; only Planner picks says "No room in the next 7 days" (the prototype said that for every case, which read wrong when only today was searched).
 47. **Debug test alarm:** Settings › Developer › "Test alarm in 1 minute" adds one alarm (id 3999) to `plannedNotesProvider`, since every re-plan cancels everything pending. Changes to providers need a hot restart (`kill -USR2`), not a hot reload: Riverpod providers that already exist keep their old code.
+48. **Full-screen alarms** (user request, 1 Oct). Settings › Notifications › Alarm style: *Notification* (the `planner_alarm` channel, unchanged, the default) or *Full screen* (Android only; the rows are hidden where `alarmEngineProvider` is unavailable). Full screen uses the `alarm` plugin 5.13: exact `setExactAndAllowWhileIdle` alarms (not alarm-clock class, so no status-bar alarm icon), a foreground service that plays the tone on the alarm stream with optional fade-in and vibration, and a full-screen intent with the plugin's `RING` action on `MainActivity`. `MainActivity` (channel `planner/alarm`) shows over the lock screen and turns the screen on only for that launch (the plugin also toggles this while ringing), and after Done or Snooze clears it and `moveTaskToBack`, so the phone returns to the lock screen or the interrupted app; Start now asks to unlock first, then stays and opens the task. The alarm screen is the root route `/alarm` (system back is blocked, so the plan beneath is never reachable over the lock screen) driven by `AlarmHost` in the shell. Re-planning (`alarmDiff`): ids are stable per task (`alarmIdFor`, FNV-1a); alarms still ahead follow the plan exactly; alarms whose planned minute has passed (ringing or snoozed) are left alone unless their task is done or gone; nothing is set for a past time (the plugin would ring it at once; the cached plan can hold one). Changing tone, fade, vibrate or snooze re-sets every alarm. Snooze from Planner's screen = stop + set again at now + N min. The plugin's storage and Do Not Disturb permissions are removed from the manifest (`tools:node="remove"`); it brings `USE_EXACT_ALARM`, fine for an app with alarms, but a Play release needs the full-screen-intent declaration.
+49. **Alarm look** (`data/alarm_prefs.dart`, inside Settings JSON so Export/Drive carry it): one shared `AlarmLook` plus optional per-category overrides; sound and answering are global. Backgrounds: six code-drawn animated looks (Orb, Aurora, Embers, Stars, Sunrise, Waves; still under reduced motion), a photo or GIF, a looping silent video (`video_player`), or the category colour. Effects: blur, dim, slow zoom (Ken Burns), tint (category or six colours) with strength. Text: clock size S-XL, font Bricolage/Geist/Mono, centred or left, task name, times, what's next, and a message (60 characters). Picked media and tones are copied into Planner's files (`alarm_media/`, `alarm_tones/`, unused copies pruned); a missing file falls back to the category colour (a restored backup on another phone keeps the look minus the media). Tones: the phone's alarm tones via RingtoneManager, previewed on the alarm stream; "Phone default" = the plugin's default. Customise alarm screen (`/alarm-look`) has a pinned live preview and **Ring a test** (10 s, in the edited category's look; `testAlarmProvider` now carries a category and is no longer debug-only).
 
 ---
 
 ## 8. Backlog (what is left, in order)
 
 1. **On-device verification** listed in section 0 (Drive, task alarms, notifications prompt, orb levels, haptics), and the first real "Hey Planner" run once the user's Porcupine files exist.
-2. **Alarm actions (optional, offered to the user):** "Done" and "Snooze 5 min" buttons on the alarm notification (needs a background notification-response handler).
+2. **Alarm actions on the Notification style (optional):** the full-screen style has Done, Snooze and Start now; the notification style still has none (it would need a background notification-response handler).
 3. **Release readiness:** a release signing key (and its SHA-1 plus Google Play's app-signing SHA-1 registered for the Android OAuth client), app name and id confirmation, iOS OAuth client when the user wants Drive on iOS, and the iOS `hey_planner_ios.ppn`.
 4. Small polish: TaskBlock loading skeleton (only if data ever loads after the first frame), desktop hover lift (+5%) on blocks, an Android emulator with a stable image if wanted.
 
