@@ -6,22 +6,22 @@ new session should read this file first, then `planner-final-handoff/README.md`
 (the exact prototype logic). Everything decided so far is recorded here, so
 nothing needs to be re-derived.
 
-Last updated: 30 September 2026, end of day 2. All ten milestones are built; what remains is on-device verification and the user's Porcupine files (see "Start here").
+Last updated: 1 October 2026, day 3. All ten milestones and the README 11 acceptance test are built; what remains is on-device verification and the user's Porcupine files (see "Start here").
 
 ---
 
-## 0. Start here (state at the end of day 2)
+## 0. Start here (state on day 3)
 
-**Code:** everything is committed on `main` (158 tests passing, analyzer clean). The last commits may not be on GitHub yet: run `git log --oneline origin/main..HEAD`; anything listed needs `git -c credential.helper= push origin main` (the user signs in as siddheshpawarcodes with a personal access token, see section 9).
+**Code:** everything is committed on `main` (159 tests passing plus the device acceptance test, analyzer clean). The last commits may not be on GitHub yet: run `git log --oneline origin/main..HEAD`; anything listed needs `git -c credential.helper= push origin main` (the user signs in as siddheshpawarcodes with a personal access token, see section 9).
 
 **Waiting on the user:**
-1. **Porcupine "Hey Planner"** (code done, not yet run for real). The user will: put their Picovoice AccessKey in `planner_app/config/secrets.json` (already created from the example and git-ignored; never paste the key into chat, and the assistant must not type it into files for them) and download the Android keyword from the Picovoice Console (Porcupine › "Hey Planner" › English › Android). When they say "done": find the download (usually a zip in `~/Downloads`), unzip it to `planner_app/assets/wake/hey_planner_android.ppn`, check the key is filled in without printing it (for example `python3 -c "import json;print(len(json.load(open('config/secrets.json'))['PICOVOICE_ACCESS_KEY']))"`), then `flutter run -d ZD222MDN6H --dart-define-from-file=config/secrets.json` and watch the log for `[wake]` lines. Say "Hey Planner" on Today.
+1. **Porcupine "Hey Planner"** (code done, not yet run for real; on 1 Oct `secrets.json` still held the example placeholder and `assets/wake/` had no `.ppn`). The user will: put their Picovoice AccessKey in `planner_app/config/secrets.json` (already created from the example and git-ignored; never paste the key into chat, and the assistant must not type it into files for them) and download the Android keyword from the Picovoice Console (Porcupine › "Hey Planner" › English › Android). When they say "done": find the download (usually a zip in `~/Downloads`), unzip it to `planner_app/assets/wake/hey_planner_android.ppn`, check the key is filled in without printing it (for example `python3 -c "import json;print(len(json.load(open('config/secrets.json'))['PICOVOICE_ACCESS_KEY']))"`), then `flutter run -d ZD222MDN6H --dart-define-from-file=config/secrets.json` and watch the log for `[wake]` lines. Say "Hey Planner" on Today.
 2. **iOS OAuth client for Drive:** deferred by the user; do not block on it.
 
 **To verify on the Motorola next time it is plugged in** (`adb devices` shows `ZD222MDN6H`):
 - **Google Drive (real, Android):** Settings › Backup › Google Drive › Connect. Expect Google's account picker and consent, then "Backed up just now". If it fails, read `[drive]` lines in the `flutter run` log. Cloud-side prerequisites: Drive API enabled; the account is a test user while the consent screen is in Testing; Android OAuth client = `com.planner.planner_app` + SHA-1 `EE:51:6E:0B:9D:5D:4A:A2:94:AF:95:6F:FD:33:D1:6C:77:B9:2B:2D` (this Mac's debug keystore; verified matching).
 - **Task alarms (new):** create a task a few minutes ahead; the alarm should ring at its start (alarm sound, repeating until dismissed). Settings › Notifications shows "Allow alarms to ring on time" until Android's "Alarms & reminders" is granted. Completing the task before its start must cancel the alarm.
-- **Notifications:** the permission prompt appears once, after onboarding (Settings › Delete all data re-runs onboarding on a device with demo data).
+- **Notifications:** the permission prompt appears once, after onboarding (Settings › Delete all data re-runs onboarding on a device with demo data). **Fixed on 1 Oct:** before that the prompt never showed (it was read through the unmounted onboarding page's `ref` and threw), which is why the Motorola still said "Notifications are off for Planner". On 1 Oct the user was asked to tap Allow for notifications and for "Alarms & reminders" themselves (permission grants are the user's); once granted, the task-alarm check below can run.
 - Orb reaction to the real microphone (not flat or maxed out) and haptics.
 
 **Device etiquette (precautions for driving the user's own phone):** check a screenshot before any adb tap; if another app, the notification shade or quick settings is open, stop and ask. Never touch system settings (Do Not Disturb was seen on; it was not changed by us). Don't repeat anything personal seen on screen. Screenshots: `adb -s ZD222MDN6H exec-out screencap -p > shot.png`.
@@ -147,6 +147,8 @@ planner_app/
     flutter_test_config.dart   loads the real fonts so widget tests measure text like the device
     domain/                    scheduler, series, intents tests (README numbers)
     app/                       harness + today, sheets, plan, missed, voice, theme tests
+                               journey.dart: the README 11 acceptance journey (acceptance_test.dart)
+  integration_test/            acceptance_test.dart: the same journey on a device (run with -d macos)
 ```
 
 ---
@@ -166,7 +168,7 @@ planner_app/
 | 9 | Progress (ribbon, heatmap) and weekly review | **Done** | 8 domain tests (Sunday and Wednesday scenarios, heat, carried, copy) and 4 widget tests (empty state, day select and With work, all six review stages with keys and Plan next week, closing). Motorola and iPhone simulator. |
 | 10 | Settings, Drive, offline; tablet and desktop; accessibility and reduced-motion pass | **Done** except the real Google Drive client (needs OAuth ids): 10a Settings + notifications + export/delete, 10b Drive (stand-in client) + offline, 10c tablet/desktop + keyboard, 10d accessibility and reduced-motion pass | Notifications, snapshot, sync suites; Settings, layout/keyboard and accessibility widget tests (every screen at 1.3× with reduced motion; 44px targets, labels and contrast via Flutter's guidelines). Motorola (Settings, Export), iPhone and iPad simulators, desktop rendered at 1440 × 900. |
 
-Test count at the end of day 2: 158 passing (`flutter test`), analyzer clean. **First Android run done on the Motorola** (Today, Progress, Settings render correctly).
+Test count on day 3: 159 passing (`flutter test`), analyzer clean; `flutter test integration_test -d macos` passes (about 1 min, real time). **First Android run done on the Motorola** (Today, Progress, Settings render correctly).
 
 ---
 
@@ -244,6 +246,7 @@ All in `test/domain/scheduler_test.dart` and `test/app/*`:
 42. **Wake word is Porcupine** (`features/voice/porcupine_engine.dart`, behind `WakeWordEngine`). AccessKey: `--dart-define-from-file=config/secrets.json` (git-ignored; copy `config/secrets.example.json`). Keyword: `assets/wake/hey_planner_android.ppn` / `hey_planner_ios.ppn` (git-ignored). Without either, the wake phrase stays off and Settings says so. It arms only when the microphone is already allowed, stops before voice opens the mic, and re-arms 400 ms after voice closes. Porcupine's plugins declare compileSdk 31; the root `android/build.gradle.kts` lifts plugin libraries to 36.
 43. **Week starts on Monday** (user decision, 30 Sep): the row stays fixed at Monday.
 44. **Task alarms** (user request, 30 Sep): every upcoming task in the next 7 days (max 40) gets an alarm at its start, in addition to the 5-minute reminder; Settings › Notifications › Task alarms (default on). Android channel `planner_alarm`: alarm sound (`content://settings/system/alarm_alert`) on the alarm audio stream, FLAG_INSISTENT (repeats until dismissed). Scheduled with `AndroidScheduleMode.alarmClock` when `canScheduleExactNotifications()` is true (manifest declares `SCHEDULE_EXACT_ALARM`; the user grants "Alarms & reminders" from Settings' Allow row), otherwise inexact. There is no separate "delete on completion" code: `NotificationHost` cancels everything and schedules the current plan on every change, so done, skipped, deleted or moved tasks lose or move their alarm. No full-screen intent (it would need the app to show over the lock screen).
+45. **Acceptance test** (README 11): `test/app/journey.dart` is one journey on one in-memory store and one fake clock, from Tuesday's onboarding (install day stamped as `main.dart` does) through the voice request, Move Flutter, done early, the missed Exercise, This weekend and the Sunday review (3 planned, 1 finished, 1h 40m focused, 2 rescheduled and carried, best hours 20:00 → 22:00). `test/app/acceptance_test.dart` runs it under `flutter test`; `integration_test/acceptance_test.dart` runs the same code on a device in real time. Run it on macOS (`flutter test integration_test -d macos`), not the user's phone: it never touches stored data, but installing a test build replaces the installed debug app. The review is opened through its button's own handler (`openReview`) because the button sits under the bottom nav at 860 px.
 
 ---
 
@@ -251,9 +254,8 @@ All in `test/domain/scheduler_test.dart` and `test/app/*`:
 
 1. **On-device verification** listed in section 0 (Drive, task alarms, notifications prompt, orb levels, haptics), and the first real "Hey Planner" run once the user's Porcupine files exist.
 2. **Alarm actions (optional, offered to the user):** "Done" and "Snooze 5 min" buttons on the alarm notification (needs a background notification-response handler).
-3. **Acceptance test** from README 11 as one `integration_test` (onboard → voice → Move Flutter → complete early → missed → weekend → review).
-4. **Release readiness:** a release signing key (and its SHA-1 plus Google Play's app-signing SHA-1 registered for the Android OAuth client), app name and id confirmation, iOS OAuth client when the user wants Drive on iOS, and the iOS `hey_planner_ios.ppn`.
-5. Small polish: TaskBlock loading skeleton (only if data ever loads after the first frame), desktop hover lift (+5%) on blocks, an Android emulator with a stable image if wanted.
+3. **Release readiness:** a release signing key (and its SHA-1 plus Google Play's app-signing SHA-1 registered for the Android OAuth client), app name and id confirmation, iOS OAuth client when the user wants Drive on iOS, and the iOS `hey_planner_ios.ppn`.
+4. Small polish: TaskBlock loading skeleton (only if data ever loads after the first frame), desktop hover lift (+5%) on blocks, an Android emulator with a stable image if wanted.
 
 ---
 
