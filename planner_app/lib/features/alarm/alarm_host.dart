@@ -79,6 +79,7 @@ class AlarmHost extends ConsumerStatefulWidget {
 class _AlarmHostState extends ConsumerState<AlarmHost> {
   StreamSubscription<List<PlannedAlarm>>? _sub;
   bool _showing = false;
+  final _quieted = <int>{};
 
   @override
   void initState() {
@@ -91,6 +92,15 @@ class _AlarmHostState extends ConsumerState<AlarmHost> {
     if (kDebugMode) debugPrint('[alarm] ringing ${list.map((a) => a.title).toList()}');
     ref.read(ringingAlarmsProvider.notifier).set(list);
     final router = ref.read(routerProvider);
+    if (list.isNotEmpty) {
+      // The screen shows it, so the system's banner isn't needed (every
+      // ringing alarm: a second one can start while the screen is up).
+      for (final a in list) {
+        if (_quieted.add(a.id)) ref.read(alarmPlatformProvider).quietBanner(a.id, a.title, a.body);
+      }
+    } else {
+      _quieted.clear();
+    }
     if (list.isNotEmpty && !_showing) {
       _showing = true;
       ref.read(shellCoveredProvider.notifier).set(true);

@@ -25,6 +25,10 @@ abstract class AlarmPlatform {
   /// cancelled unlocking.
   Future<bool> unlockAndStay();
 
+  /// Planner's alarm screen is up: take down the system's heads-up banner
+  /// for alarm [id] (the notification stays, quietly, in the shade).
+  Future<void> quietBanner(int id, String title, String body);
+
   Future<List<AlarmTone>> tones();
 
   /// Copies a tone into Planner's files; the path, or null if it failed.
@@ -62,6 +66,10 @@ class MethodAlarmPlatform implements AlarmPlatform {
   Future<bool> unlockAndStay() async => await _call<bool>('unlockAndStay') ?? true;
 
   @override
+  Future<void> quietBanner(int id, String title, String body) =>
+      _call('quietBanner', {'id': id, 'title': title, 'body': body});
+
+  @override
   Future<List<AlarmTone>> tones() async {
     final l = await _call<List<Object?>>('tones') ?? const [];
     return [
@@ -87,6 +95,7 @@ class NoAlarmPlatform implements AlarmPlatform {
   final List<AlarmTone> toneList;
   bool fullScreen;
   int released = 0, stayed = 0, overLock = 0;
+  final quieted = <int>[];
   String? previewing;
 
   @override
@@ -101,6 +110,8 @@ class NoAlarmPlatform implements AlarmPlatform {
     return true;
   }
 
+  @override
+  Future<void> quietBanner(int id, String title, String body) async => quieted.add(id);
   @override
   Future<List<AlarmTone>> tones() async => toneList;
   @override

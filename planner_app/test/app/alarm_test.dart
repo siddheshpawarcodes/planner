@@ -54,6 +54,7 @@ void main() {
     expect(find.text('20:00 → 22:00'), findsOneWidget);
     expect(find.text('Then Exercise at 22:15'), findsOneWidget);
     expect(platform.overLock, 1);
+    expect(platform.quieted, [a.id], reason: 'the system banner gives way to the screen');
 
     await tester.tap(find.bySemanticsLabel('Done, mark Study polity complete'));
     await h.settle(800);

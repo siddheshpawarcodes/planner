@@ -2,7 +2,9 @@ package com.planner.planner_app
 
 import android.app.Activity
 import android.app.KeyguardManager
+import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -12,6 +14,8 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.WindowManager
+import androidx.core.app.NotificationCompat
+import com.gdelataillade.alarm.alarm.AlarmReceiver
 import com.gdelataillade.alarm.alarm.AlarmService
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -25,6 +29,10 @@ import java.io.File
  * steps back to whatever the alarm interrupted (the lock screen included).
  */
 class MainActivity : FlutterActivity() {
+    companion object {
+        private const val QUIET_CHANNEL = "planner_alarm_quiet"
+    }
+
     private var alarmLaunch = false
     private var preview: MediaPlayer? = null
 
@@ -108,6 +116,16 @@ class MainActivity : FlutterActivity() {
                         })
                     }
                 }
+                // Planner's alarm screen is showing: swap the plugin's
+                // heads-up notification for a quiet one under the same id.
+                "quietBanner" -> {
+                    quietBanner(
+                        call.argument<Int>("id") ?: 0,
+                        call.argument<String>("title") ?: "Planner",
+                        call.argument<String>("body") ?: ""
+                    )
+                    result.success(null)
+                }
                 "tones" -> result.success(alarmTones())
                 "copyTone" -> {
                     val uri = call.argument<String>("uri")
@@ -137,6 +155,55 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    /**
+     * The alarm plugin posts its ringing notification on a high-importance
+     * channel, so Android shows a heads-up banner when the phone is in use,
+     * on top of Planner's own alarm screen. Re-posting it under the same id
+     * (it stays the foreground service's notification) on a low-importance,
+     * silent channel takes the banner down; the tone keeps playing, since
+     * the service plays it, not the notification. Stop and tap-to-open stay
+     * for the notification shade.
+     */
+    private fun quietBanner(id: Int, title: String, body: String) {
+        val nm = getSystemService(NotificationManager::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            nm.createNotificationChannel(
+                NotificationChannel(QUIET_CHANNEL, "Ringing alarm", NotificationManager.IMPORTANCE_LOW).apply {
+                    description = "The alarm that is ringing while its screen is open"
+                    setSound(null, null)
+                    enableVibration(false)
+                    setShowBadge(false)
+                }
+            )
+        }
+        val open = PendingIntent.getActivity(
+            this, id, Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val stop = PendingIntent.getBroadcast(
+            this, id,
+            Intent(this, AlarmReceiver::class.java).apply {
+                action = "com.gdelataillade.alarm.ACTION_STOP"
+                putExtra("id", id)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val n = NotificationCompat.Builder(this, QUIET_CHANNEL)
+            .setSmallIcon(applicationInfo.icon)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .setSilent(true)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(open)
+            .addAction(0, "Stop", stop)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .build()
+        nm.notify(id, n)
     }
 
     /** The phone's alarm tones: [{title, uri}]. */
